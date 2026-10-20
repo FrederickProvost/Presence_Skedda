@@ -15,7 +15,7 @@ import sys
 TABLE_ID = "01M4XMP5Q9SG9RP6X9BY8A8SHA"
 
 # Dans GitHub Actions, l'URL sera fournie par GitHub Secrets
-ZAPIER_URL = ("https://tables.zapier.com/app/tables/t/01M4XMP5Q9SG9RP6X9BY8A8SHA?secrets=MTp0YWJsZTplWlZBbDNzVTVIT3JrcUpVblc0VFNXUUhzS2V0UC1RUHBGb0hSVDM0WjNzOnh6bWZ2aw")
+ZAPIER_URL = os.environ.get("ZAPIER_TABLE_URL")
 
 SCRIPT_FOLDER = Path(__file__).resolve().parent
 
