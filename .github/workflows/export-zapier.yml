@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
 
   schedule:
-    # 9:00 Toronto lorsque Toronto est à UTC-4
-    - cron: "0 13 * * *"
+    # 8:50 Toronto lorsque Toronto est à UTC-4
+    - cron: "50 12 * * *"
 
 permissions:
   contents: write
