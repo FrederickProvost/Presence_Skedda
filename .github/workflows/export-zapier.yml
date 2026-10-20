@@ -1,0 +1,39 @@
+name: Export Zapier Table
+
+on:
+  schedule:
+    - cron: "0 13 * * *"
+
+  workflow_dispatch:
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Export Zapier Table
+        env:
+          ZAPIER_TABLE_URL: ${{ secrets.ZAPIER_TABLE_URL }}
+        run: |
+          python zapier_to_csv.py
+
+      - name: Commit CSV
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add Presence_Skedda.csv
+          git diff --cached --quiet || git commit -m "Update Presence Skedda CSV"
+          git push
