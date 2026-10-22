@@ -570,14 +570,10 @@ def capture_response(response):
 # DÉDOUBLONNAGE
 # ============================================================
 
-def deduplicate_records(
-    candidates
-):
-
+def deduplicate_records(candidates):
     best_by_key = {}
 
-    for candidate in candidates:
-
+    for index, candidate in enumerate(candidates):
         row = candidate["row"]
         score = candidate["score"]
 
@@ -588,15 +584,32 @@ def deduplicate_records(
             ).strip()
         )
 
-        if booking_id:
+        # ----------------------------------------------------
+        # CAS 1 : Booking ID commence par "Ex"
+        # On conserve TOUTES les lignes
+        # ----------------------------------------------------
+        if booking_id.lower().startswith("ex"):
+            unique_key = (
+                "booking_id_ex",
+                booking_id,
+                index,
+            )
 
+        # ----------------------------------------------------
+        # CAS 2 : Booking ID normal
+        # Même logique qu'avant :
+        # une seule ligne par Booking ID
+        # ----------------------------------------------------
+        elif booking_id:
             unique_key = (
                 "booking_id",
                 booking_id,
             )
 
+        # ----------------------------------------------------
+        # CAS 3 : Aucun Booking ID
+        # ----------------------------------------------------
         else:
-
             unique_key = tuple(
                 row.get(
                     column,
@@ -606,23 +619,16 @@ def deduplicate_records(
                 in EXPECTED_COLUMNS
             )
 
-        existing = (
-            best_by_key.get(
-                unique_key
-            )
+        existing = best_by_key.get(
+            unique_key
         )
 
         if existing is None:
-
             best_by_key[
                 unique_key
             ] = candidate
 
-        elif (
-            score
-            > existing["score"]
-        ):
-
+        elif score > existing["score"]:
             best_by_key[
                 unique_key
             ] = candidate
