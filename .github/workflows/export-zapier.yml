@@ -4,7 +4,16 @@ on:
   workflow_dispatch:
 
   schedule:
-    - cron: "50 8,11,14 * * *"
+    # Tous les jours à 8 h 50 - heure de Toronto
+    - cron: "50 8 * * *"
+      timezone: "America/Toronto"
+
+    # Tous les jours à 11 h 50 - heure de Toronto
+    - cron: "50 11 * * *"
+      timezone: "America/Toronto"
+
+    # Tous les jours à 14 h 50 - heure de Toronto
+    - cron: "50 14 * * *"
       timezone: "America/Toronto"
 
 permissions:
