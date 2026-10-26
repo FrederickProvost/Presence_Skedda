@@ -4,15 +4,12 @@ on:
   workflow_dispatch:
 
   schedule:
-    # Tous les jours à 8 h 50 - heure de Toronto
     - cron: "50 8 * * *"
       timezone: "America/Toronto"
 
-    # Tous les jours à 11 h 50 - heure de Toronto
     - cron: "50 11 * * *"
       timezone: "America/Toronto"
 
-    # Tous les jours à 14 h 50 - heure de Toronto
     - cron: "50 14 * * *"
       timezone: "America/Toronto"
 
@@ -26,6 +23,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+
+      - name: Show trigger information
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Schedule: ${{ github.event.schedule }}"
+          echo "UTC time:"
+          date -u
+          echo "Toronto time:"
+          TZ=America/Toronto date
 
       - name: Setup Python
         uses: actions/setup-python@v6
