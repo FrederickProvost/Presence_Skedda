@@ -23,7 +23,6 @@ OUTPUT_FILE = SCRIPT_FOLDER / "Presence_Skedda.csv"
 DEBUG_FILE = SCRIPT_FOLDER / "zapier_debug.json"
 SCREENSHOT_FILE = SCRIPT_FOLDER / "zapier_pagination_error.png"
 
-# Chromium doit fonctionner sans interface graphique
 HEADLESS = True
 
 PAGE_TIMEOUT_MS = 120_000
@@ -268,9 +267,7 @@ def inspect_field_definitions(obj):
                 possible_id
             ).strip()
 
-            field_map[field_id] = (
-                official_name
-            )
+            field_map[field_id] = official_name
 
             field_map[
                 f"f{field_id}"
@@ -570,7 +567,7 @@ def get_pagination_status(page):
         Page 1 of 2
         Page 2 of 2
 
-    Si le panneau est fermé :
+    Si le panneau de pagination est fermé :
         None, None
     """
 
@@ -753,11 +750,12 @@ def scroll_current_page(page):
 
 def open_pagination_panel(page):
     """
-    Clique sur le bouton jaune situé immédiatement
+    Clique sur le contrôle situé immédiatement
     à gauche du compteur de records.
 
     Exemple :
-        [bouton jaune ^] [1,017 records]
+
+        [contrôle d'ouverture] [1,017 records]
     """
 
     if pagination_panel_is_open(
@@ -771,7 +769,7 @@ def open_pagination_panel(page):
         return True
 
     print(
-        "Clic sur le bouton jaune..."
+        "Ouverture du panneau de pagination..."
     )
 
     result = page.evaluate(
@@ -804,8 +802,8 @@ def open_pagination_panel(page):
             }
 
             /*
-            Trouver le plus petit élément visible contenant
-            seulement le compteur de records.
+            Trouver l'élément visible contenant seulement
+            le compteur de records.
             */
 
             const recordCandidates =
@@ -856,8 +854,8 @@ def open_pagination_panel(page):
                 recordElement.getBoundingClientRect();
 
             /*
-            Chercher un bouton visible immédiatement
-            à gauche du compteur.
+            Chercher un contrôle visible situé
+            immédiatement à gauche du compteur.
             */
 
             const controls = Array.from(
@@ -903,7 +901,9 @@ def open_pagination_panel(page):
                         recordRect.left -
                         rect.right < 80;
 
-                    const smallControl =
+                    const reasonableSize =
+                        rect.width > 0 &&
+                        rect.height > 0 &&
                         rect.width <= 80 &&
                         rect.height <= 80;
 
@@ -911,7 +911,7 @@ def open_pagination_panel(page):
                         verticallyAligned &&
                         onLeft &&
                         closeToCounter &&
-                        smallControl
+                        reasonableSize
                     );
                 })
                 .sort((a, b) => {
@@ -938,7 +938,7 @@ def open_pagination_panel(page):
                 return {
                     clicked: false,
                     reason:
-                        "yellow_button_not_found"
+                        "pagination_toggle_not_found"
                 };
             }
 
@@ -956,7 +956,8 @@ def open_pagination_panel(page):
     if not result.get("clicked"):
 
         print(
-            "Bouton jaune non détecté par structure."
+            "Contrôle d'ouverture non détecté "
+            "par sa structure."
         )
 
         print(
@@ -970,13 +971,18 @@ def open_pagination_panel(page):
                     const rect =
                         element.getBoundingClientRect();
 
+                    const style =
+                        window.getComputedStyle(element);
+
                     return (
                         rect.width > 0 &&
-                        rect.height > 0
+                        rect.height > 0 &&
+                        style.display !== "none" &&
+                        style.visibility !== "hidden"
                     );
                 }
 
-                const recordElement =
+                const recordCandidates =
                     Array.from(
                         document.querySelectorAll("*")
                     )
@@ -1004,18 +1010,20 @@ def open_pagination_panel(page):
                             -
                             rectB.width * rectB.height
                         );
-                    })[0];
+                    });
 
-                if (!recordElement) {
+                if (recordCandidates.length === 0) {
                     return false;
                 }
+
+                const recordElement =
+                    recordCandidates[0];
 
                 const recordRect =
                     recordElement.getBoundingClientRect();
 
                 /*
-                Le bouton jaune est directement à gauche
-                du compteur de records.
+                Cliquer légèrement à gauche du compteur.
                 */
 
                 const x = Math.max(
@@ -1058,9 +1066,8 @@ def open_pagination_panel(page):
         if not fallback_clicked:
 
             raise RuntimeError(
-                "Impossible de cliquer sur le bouton "
-                "jaune situé à gauche du compteur "
-                "de records."
+                "Impossible de cliquer sur le contrôle "
+                "situé à gauche du compteur de records."
             )
 
     try:
@@ -1096,7 +1103,7 @@ def open_pagination_panel(page):
     except Exception as error:
 
         raise RuntimeError(
-            "Le bouton jaune a été cliqué, "
+            "Le contrôle d'ouverture a été cliqué, "
             "mais le panneau 'Page X of Y' "
             "ne s'est pas affiché."
         ) from error
@@ -1118,12 +1125,15 @@ def open_pagination_panel(page):
 
 def click_next_page_button(page):
     """
-    Clique sur le bouton orange immédiatement à droite de :
+    Clique sur le premier contrôle situé immédiatement
+    à droite du texte :
 
         Page X of Y
 
-    Le bouton suivant à sa droite est le bouton
-    permettant d'aller directement à la dernière page.
+    Dans la barre de pagination :
+
+        Première | Précédente | Page X of Y |
+        Suivante | Dernière
     """
 
     if not pagination_panel_is_open(
@@ -1161,6 +1171,11 @@ def click_next_page_button(page):
                     ) === "true"
                 );
             }
+
+            /*
+            Trouver l'élément correspondant exactement
+            à "Page X of Y".
+            */
 
             const statusCandidates =
                 Array.from(
@@ -1209,7 +1224,12 @@ def click_next_page_button(page):
             const statusRect =
                 statusElement.getBoundingClientRect();
 
-            const controls = Array.from(
+            /*
+            Chercher les petits contrôles visibles,
+            actifs et alignés avec "Page X of Y".
+            */
+
+            const controlsOnRight = Array.from(
                 document.querySelectorAll(
                     [
                         "button",
@@ -1246,13 +1266,15 @@ def click_next_page_button(page):
 
                     const onRight =
                         rect.left >=
-                        statusRect.right - 8;
+                        statusRect.right - 5;
 
                     const closeToStatus =
                         rect.left -
                         statusRect.right < 120;
 
-                    const smallControl =
+                    const reasonableSize =
+                        rect.width > 0 &&
+                        rect.height > 0 &&
                         rect.width <= 80 &&
                         rect.height <= 80;
 
@@ -1260,10 +1282,20 @@ def click_next_page_button(page):
                         verticallyAligned &&
                         onRight &&
                         closeToStatus &&
-                        smallControl
+                        reasonableSize
                     );
                 })
                 .sort((a, b) => {
+                    /*
+                    Trier de gauche à droite.
+
+                    Le premier contrôle à droite est
+                    Page suivante.
+
+                    Le deuxième contrôle à droite est
+                    Dernière page.
+                    */
+
                     return (
                         a.getBoundingClientRect().left
                         -
@@ -1271,20 +1303,18 @@ def click_next_page_button(page):
                     );
                 });
 
-            if (controls.length === 0) {
+            if (controlsOnRight.length === 0) {
                 return {
                     clicked: false,
                     reason:
-                        "orange_next_button_not_found"
+                        "next_page_button_not_found"
                 };
             }
 
-            /*
-            Le premier contrôle immédiatement à droite
-            de Page X of Y est le bouton orange ">".
-            */
+            const nextPageButton =
+                controlsOnRight[0];
 
-            controls[0].click();
+            nextPageButton.click();
 
             return {
                 clicked: true,
@@ -1295,9 +1325,20 @@ def click_next_page_button(page):
         """
     )
 
-    return bool(
-        result.get("clicked")
+    if not result.get("clicked"):
+
+        print(
+            "Échec du clic Page suivante : "
+            f"{result.get('reason', 'raison inconnue')}"
+        )
+
+        return False
+
+    print(
+        "Bouton Page suivante cliqué."
     )
+
+    return True
 
 
 def wait_for_page_number(
@@ -1368,13 +1409,15 @@ def wait_for_new_records_response(
 
 def load_all_pages(page):
     """
+    Charge successivement toutes les pages Zapier.
+
     Séquence :
 
-    1. Charger les lignes de la première page.
-    2. Cliquer sur le bouton jaune.
-    3. Lire Page X of Y.
-    4. Cliquer sur le bouton orange.
-    5. Attendre la page suivante.
+    1. Charger les lignes de la page actuelle.
+    2. Ouvrir le panneau de pagination.
+    3. Lire le texte Page X of Y.
+    4. Cliquer sur Page suivante.
+    5. Attendre le changement de page.
     6. Charger les lignes de la nouvelle page.
     7. Répéter jusqu'à la dernière page.
     """
@@ -1386,7 +1429,7 @@ def load_all_pages(page):
     print("")
 
     # --------------------------------------------------------
-    # Première page
+    # Charger complètement la première page
     # --------------------------------------------------------
 
     print(
@@ -1398,7 +1441,7 @@ def load_all_pages(page):
     )
 
     # --------------------------------------------------------
-    # Ouvrir le panneau avec le bouton jaune
+    # Ouvrir le panneau de pagination
     # --------------------------------------------------------
 
     open_pagination_panel(
@@ -1434,8 +1477,12 @@ def load_all_pages(page):
         f"{total_pages}"
     )
 
+    visited_pages = {
+        current_page
+    }
+
     # --------------------------------------------------------
-    # Pages suivantes
+    # Parcourir les pages suivantes
     # --------------------------------------------------------
 
     while current_page < total_pages:
@@ -1455,7 +1502,6 @@ def load_all_pages(page):
             count_records_query_responses()
         )
 
-        # Le panneau pourrait s'être fermé
         if not pagination_panel_is_open(
             page
         ):
@@ -1464,7 +1510,6 @@ def load_all_pages(page):
                 page
             )
 
-        # Cliquer sur le bouton orange
         clicked = click_next_page_button(
             page
         )
@@ -1472,11 +1517,15 @@ def load_all_pages(page):
         if not clicked:
 
             raise RuntimeError(
-                "Impossible de cliquer sur le "
-                "bouton orange Page suivante."
+                "Impossible de cliquer sur le bouton "
+                "Page suivante situé à droite de "
+                "'Page X of Y'."
             )
 
-        # Attendre Page suivante of Total
+        # ----------------------------------------------------
+        # Attendre le changement du numéro de page
+        # ----------------------------------------------------
+
         wait_for_page_number(
             page,
             next_page,
@@ -1488,15 +1537,18 @@ def load_all_pages(page):
             f"{total_pages}"
         )
 
-        # Attendre la réponse réseau
-        received = (
+        # ----------------------------------------------------
+        # Attendre une nouvelle réponse réseau
+        # ----------------------------------------------------
+
+        response_received = (
             wait_for_new_records_response(
                 page,
                 previous_response_count,
             )
         )
 
-        if received:
+        if response_received:
 
             print(
                 "Nouvelle réponse "
@@ -1507,19 +1559,26 @@ def load_all_pages(page):
 
             print(
                 "AVERTISSEMENT : aucune nouvelle "
-                "réponse /records/query détectée."
+                "réponse /records/query détectée "
+                "après le changement de page."
             )
 
         page.wait_for_timeout(
             WAIT_AFTER_PAGE_CHANGE_MS
         )
 
+        # ----------------------------------------------------
         # Charger toutes les lignes de la nouvelle page
+        # ----------------------------------------------------
+
         scroll_current_page(
             page
         )
 
-        # Le panneau peut se fermer après le scroll
+        # ----------------------------------------------------
+        # Rouvrir le panneau au besoin
+        # ----------------------------------------------------
+
         if not pagination_panel_is_open(
             page
         ):
@@ -1527,6 +1586,10 @@ def load_all_pages(page):
             open_pagination_panel(
                 page
             )
+
+        # ----------------------------------------------------
+        # Confirmer le numéro de page
+        # ----------------------------------------------------
 
         current_page, detected_total = (
             get_pagination_status(
@@ -1540,14 +1603,32 @@ def load_all_pages(page):
         ):
 
             raise RuntimeError(
-                "Impossible de confirmer le "
-                "numéro de la nouvelle page."
+                "Impossible de confirmer le numéro "
+                "de la nouvelle page."
             )
+
+        if current_page in visited_pages:
+
+            raise RuntimeError(
+                f"La page {current_page} a déjà été "
+                "visitée. La pagination ne progresse pas."
+            )
+
+        visited_pages.add(
+            current_page
+        )
 
         total_pages = max(
             total_pages,
             detected_total,
         )
+
+        if total_pages > MAX_PAGES:
+
+            raise RuntimeError(
+                f"Nombre de pages anormalement élevé : "
+                f"{total_pages}"
+            )
 
         print(
             f"Page confirmée : "
@@ -1559,6 +1640,11 @@ def load_all_pages(page):
     print(
         "Toutes les pages Zapier "
         "ont été parcourues."
+    )
+
+    print(
+        f"Pages visitées : "
+        f"{len(visited_pages)}"
     )
 
 
@@ -1586,7 +1672,7 @@ def deduplicate_records(candidates):
         # CAS 1 : Booking ID commence par "Ex"
         #
         # ANCIENNE LOGIQUE CONSERVÉE :
-        # toutes les lignes Ex sont conservées grâce à index.
+        # toutes les lignes sont conservées grâce à index.
         # ----------------------------------------------------
 
         if booking_id.lower().startswith(
@@ -1742,7 +1828,7 @@ def save_error_screenshot(page):
     except Exception as error:
 
         print(
-            f"Impossible de prendre la "
+            "Impossible de prendre la "
             f"capture d'écran : {error}"
         )
 
