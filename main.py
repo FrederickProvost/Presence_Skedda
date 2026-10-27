@@ -1125,20 +1125,31 @@ def open_pagination_panel(page):
 
 def click_next_page_button(page):
     """
-    Clique sur le premier contrôle situé immédiatement
-    à droite du texte :
+    Clique sur le bouton Page suivante dans le panneau
+    de pagination Zapier.
 
-        Page X of Y
-
-    Dans la barre de pagination :
+    Structure observée :
 
         Première | Précédente | Page X of Y |
         Suivante | Dernière
+
+    Aucune couleur n'est utilisée.
+
+    La fonction :
+    1. trouve "Page X of Y";
+    2. remonte dans ses parents;
+    3. trouve un conteneur avec les contrôles de pagination;
+    4. trie les contrôles de gauche à droite;
+    5. clique sur le premier contrôle situé à droite
+       de "Page X of Y".
     """
 
-    if not pagination_panel_is_open(
-        page
-    ):
+    if not pagination_panel_is_open(page):
+
+        print(
+            "Le panneau est fermé. "
+            "Réouverture..."
+        )
 
         open_pagination_panel(
             page
@@ -1147,7 +1158,13 @@ def click_next_page_button(page):
     result = page.evaluate(
         """
         () => {
+
             function isVisible(element) {
+
+                if (!element) {
+                    return false;
+                }
+
                 const rect =
                     element.getBoundingClientRect();
 
@@ -1162,7 +1179,13 @@ def click_next_page_button(page):
                 );
             }
 
+
             function isDisabled(element) {
+
+                if (!element) {
+                    return true;
+                }
+
                 return (
                     element.disabled === true ||
                     element.hasAttribute("disabled") ||
@@ -1172,45 +1195,61 @@ def click_next_page_button(page):
                 );
             }
 
-            /*
-            Trouver l'élément correspondant exactement
-            à "Page X of Y".
-            */
 
-            const statusCandidates =
+            // =================================================
+            // 1. TROUVER "Page X of Y"
+            // =================================================
+
+            const allElements =
                 Array.from(
                     document.querySelectorAll("*")
-                )
+                );
+
+
+            const statusCandidates =
+                allElements
                 .filter(element => {
+
                     if (!isVisible(element)) {
                         return false;
                     }
 
-                    const text = (
-                        element.innerText || ""
-                    ).trim();
+                    const text =
+                        (
+                            element.innerText || ""
+                        ).trim();
 
                     return (
                         /^Page\\s+\\d+\\s+of\\s+\\d+$/i.test(
                             text
                         )
                     );
+
                 })
                 .sort((a, b) => {
+
                     const rectA =
                         a.getBoundingClientRect();
 
                     const rectB =
                         b.getBoundingClientRect();
 
-                    return (
-                        rectA.width * rectA.height
-                        -
-                        rectB.width * rectB.height
-                    );
+                    const areaA =
+                        rectA.width *
+                        rectA.height;
+
+                    const areaB =
+                        rectB.width *
+                        rectB.height;
+
+                    return areaA - areaB;
                 });
 
-            if (statusCandidates.length === 0) {
+
+            if (
+                statusCandidates.length === 0
+            ) {
+
                 return {
                     clicked: false,
                     reason:
@@ -1218,28 +1257,174 @@ def click_next_page_button(page):
                 };
             }
 
+
             const statusElement =
                 statusCandidates[0];
+
 
             const statusRect =
                 statusElement.getBoundingClientRect();
 
-            /*
-            Chercher les petits contrôles visibles,
-            actifs et alignés avec "Page X of Y".
-            */
 
-            const controlsOnRight = Array.from(
-                document.querySelectorAll(
-                    [
-                        "button",
-                        "a",
-                        '[role="button"]',
-                        "[tabindex]"
-                    ].join(",")
-                )
-            )
-                .filter(element => {
+            // =================================================
+            // 2. REMONTER DANS LES PARENTS
+            //
+            // On cherche le conteneur complet de pagination.
+            // =================================================
+
+            let container =
+                statusElement.parentElement;
+
+
+            let paginationContainer =
+                null;
+
+
+            for (
+                let level = 0;
+                level < 8;
+                level++
+            ) {
+
+                if (!container) {
+                    break;
+                }
+
+
+                const containerRect =
+                    container.getBoundingClientRect();
+
+
+                /*
+                Le panneau de pagination doit être
+                relativement petit.
+                */
+
+                const reasonableContainer =
+                    containerRect.width > 80 &&
+                    containerRect.width < 500 &&
+                    containerRect.height > 20 &&
+                    containerRect.height < 150;
+
+
+                if (reasonableContainer) {
+
+                    const descendants =
+                        Array.from(
+                            container.querySelectorAll("*")
+                        );
+
+
+                    const possibleControls =
+                        descendants.filter(element => {
+
+                            if (!isVisible(element)) {
+                                return false;
+                            }
+
+                            const rect =
+                                element.getBoundingClientRect();
+
+
+                            const centerY =
+                                rect.top +
+                                rect.height / 2;
+
+
+                            const statusCenterY =
+                                statusRect.top +
+                                statusRect.height / 2;
+
+
+                            const aligned =
+                                Math.abs(
+                                    centerY -
+                                    statusCenterY
+                                ) < 35;
+
+
+                            const smallEnough =
+                                rect.width > 5 &&
+                                rect.width < 80 &&
+                                rect.height > 5 &&
+                                rect.height < 80;
+
+
+                            const interactive =
+                                element.tagName ===
+                                    "BUTTON"
+                                ||
+                                element.tagName ===
+                                    "A"
+                                ||
+                                element.getAttribute(
+                                    "role"
+                                ) === "button"
+                                ||
+                                element.hasAttribute(
+                                    "tabindex"
+                                )
+                                ||
+                                window.getComputedStyle(
+                                    element
+                                ).cursor ===
+                                    "pointer";
+
+
+                            return (
+                                aligned &&
+                                smallEnough &&
+                                interactive
+                            );
+
+                        });
+
+
+                    /*
+                    On s'attend à trouver plusieurs
+                    contrôles dans le panneau.
+                    */
+
+                    if (
+                        possibleControls.length >= 2
+                    ) {
+
+                        paginationContainer =
+                            container;
+
+                        break;
+                    }
+                }
+
+
+                container =
+                    container.parentElement;
+            }
+
+
+            if (!paginationContainer) {
+
+                return {
+                    clicked: false,
+                    reason:
+                        "pagination_container_not_found"
+                };
+            }
+
+
+            // =================================================
+            // 3. RÉCUPÉRER TOUS LES ÉLÉMENTS CLIQUABLES
+            // =================================================
+
+            const descendants =
+                Array.from(
+                    paginationContainer.querySelectorAll("*")
+                );
+
+
+            let controls =
+                descendants.filter(element => {
+
                     if (
                         !isVisible(element) ||
                         isDisabled(element)
@@ -1247,92 +1432,253 @@ def click_next_page_button(page):
                         return false;
                     }
 
+
                     const rect =
                         element.getBoundingClientRect();
+
 
                     const statusCenterY =
                         statusRect.top +
                         statusRect.height / 2;
 
-                    const controlCenterY =
+
+                    const elementCenterY =
                         rect.top +
                         rect.height / 2;
 
-                    const verticallyAligned =
+
+                    const aligned =
                         Math.abs(
-                            controlCenterY -
+                            elementCenterY -
                             statusCenterY
-                        ) < 30;
+                        ) < 35;
 
-                    const onRight =
-                        rect.left >=
-                        statusRect.right - 5;
-
-                    const closeToStatus =
-                        rect.left -
-                        statusRect.right < 120;
 
                     const reasonableSize =
-                        rect.width > 0 &&
-                        rect.height > 0 &&
-                        rect.width <= 80 &&
-                        rect.height <= 80;
+                        rect.width > 5 &&
+                        rect.width < 80 &&
+                        rect.height > 5 &&
+                        rect.height < 80;
+
+
+                    /*
+                    Un contrôle peut être détecté
+                    de plusieurs façons.
+                    */
+
+                    const interactive =
+                        element.tagName ===
+                            "BUTTON"
+                        ||
+                        element.tagName ===
+                            "A"
+                        ||
+                        element.getAttribute(
+                            "role"
+                        ) === "button"
+                        ||
+                        element.hasAttribute(
+                            "tabindex"
+                        )
+                        ||
+                        window.getComputedStyle(
+                            element
+                        ).cursor ===
+                            "pointer";
+
 
                     return (
-                        verticallyAligned &&
-                        onRight &&
-                        closeToStatus &&
-                        reasonableSize
+                        aligned &&
+                        reasonableSize &&
+                        interactive
                     );
-                })
-                .sort((a, b) => {
-                    /*
-                    Trier de gauche à droite.
 
-                    Le premier contrôle à droite est
-                    Page suivante.
+                });
 
-                    Le deuxième contrôle à droite est
-                    Dernière page.
-                    */
+
+            // =================================================
+            // 4. GARDER SEULEMENT LES CONTRÔLES À DROITE
+            // =================================================
+
+            controls =
+                controls.filter(element => {
+
+                    const rect =
+                        element.getBoundingClientRect();
+
+                    return (
+                        rect.left >=
+                        statusRect.right - 5
+                    );
+
+                });
+
+
+            // =================================================
+            // 5. TRIER DE GAUCHE À DROITE
+            // =================================================
+
+            controls.sort(
+                (a, b) => {
 
                     return (
                         a.getBoundingClientRect().left
                         -
                         b.getBoundingClientRect().left
                     );
-                });
 
-            if (controlsOnRight.length === 0) {
+                }
+            );
+
+
+            if (controls.length === 0) {
+
+                /*
+                Retourner de l'information de diagnostic.
+                */
+
                 return {
                     clicked: false,
                     reason:
-                        "next_page_button_not_found"
+                        "no_control_right_of_status",
+                    statusLeft:
+                        statusRect.left,
+                    statusRight:
+                        statusRect.right,
+                    containerText:
+                        (
+                            paginationContainer.innerText
+                            || ""
+                        ).trim()
                 };
             }
 
-            const nextPageButton =
-                controlsOnRight[0];
 
-            nextPageButton.click();
+            // =================================================
+            // 6. ÉLIMINER LES DOUBLONS HTML
+            //
+            // Un bouton peut contenir un span/svg.
+            // Plusieurs éléments peuvent donc avoir
+            // pratiquement la même position.
+            // =================================================
+
+            const uniqueControls = [];
+
+
+            for (const control of controls) {
+
+                const rect =
+                    control.getBoundingClientRect();
+
+
+                const duplicate =
+                    uniqueControls.some(
+                        existing => {
+
+                            const existingRect =
+                                existing.getBoundingClientRect();
+
+                            return (
+                                Math.abs(
+                                    existingRect.left -
+                                    rect.left
+                                ) < 3
+                                &&
+                                Math.abs(
+                                    existingRect.top -
+                                    rect.top
+                                ) < 3
+                            );
+
+                        }
+                    );
+
+
+                if (!duplicate) {
+
+                    uniqueControls.push(
+                        control
+                    );
+                }
+            }
+
+
+            if (
+                uniqueControls.length === 0
+            ) {
+
+                return {
+                    clicked: false,
+                    reason:
+                        "no_unique_control"
+                };
+            }
+
+
+            // =================================================
+            // 7. PREMIER CONTRÔLE À DROITE
+            //
+            // C'est Page suivante.
+            // =================================================
+
+            const nextButton =
+                uniqueControls[0];
+
+
+            const nextRect =
+                nextButton.getBoundingClientRect();
+
+
+            /*
+            scrollIntoView pour éviter qu'un élément
+            hors écran bloque le clic.
+            */
+
+            nextButton.scrollIntoView({
+                block: "nearest",
+                inline: "nearest"
+            });
+
+
+            // =================================================
+            // 8. CLIQUER
+            // =================================================
+
+            nextButton.click();
+
 
             return {
                 clicked: true,
                 reason:
-                    "first_control_right_of_status"
+                    "next_page_clicked",
+                tag:
+                    nextButton.tagName,
+                left:
+                    nextRect.left,
+                top:
+                    nextRect.top,
+                width:
+                    nextRect.width,
+                height:
+                    nextRect.height
             };
         }
         """
     )
 
-    if not result.get("clicked"):
 
-        print(
-            "Échec du clic Page suivante : "
-            f"{result.get('reason', 'raison inconnue')}"
-        )
+    print(
+        "Résultat détection Page suivante : "
+        f"{result}"
+    )
+
+
+    if not result.get(
+        "clicked"
+    ):
 
         return False
+
 
     print(
         "Bouton Page suivante cliqué."
