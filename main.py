@@ -1125,19 +1125,27 @@ def open_pagination_panel(page):
 
 def click_next_page_button(page):
     """
-    Clique sur le contrôle Page suivante situé
-    immédiatement à droite du texte visible :
+    Clique sur le bouton Page suivante.
 
-        Page X of Y
+    La fonction ne dépend :
+    - ni d'une couleur;
+    - ni d'un symbole précis;
+    - ni d'un noeud texte unique.
 
-    Cette version utilise directement la position du
-    noeud texte "Page X of Y", plutôt que la position
-    de son élément HTML parent.
+    Elle trouve l'élément dont innerText contient
+    exactement "Page X of Y", puis cherche autour de cet
+    élément le groupe contenant les contrôles de pagination.
+
+    Dans le groupe :
+
+        Première | Précédente | Page X of Y |
+        Suivante | Dernière
+
+    Le contrôle Page suivante est déterminé par sa position
+    dans le groupe.
     """
 
-    if not pagination_panel_is_open(
-        page
-    ):
+    if not pagination_panel_is_open(page):
 
         print(
             "Le panneau de pagination est fermé. "
@@ -1193,375 +1201,45 @@ def click_next_page_button(page):
             }
 
 
-            function findClickableParent(element) {
+            function looksInteractive(element) {
 
                 if (!element) {
-                    return null;
+                    return false;
                 }
 
-                let current = element;
+                const style =
+                    window.getComputedStyle(
+                        element
+                    );
 
-
-                for (
-                    let level = 0;
-                    level < 8;
-                    level++
-                ) {
-
-                    if (!current) {
-                        break;
-                    }
-
-
-                    const style =
-                        window.getComputedStyle(
-                            current
-                        );
-
-
-                    const interactive =
-                        current.tagName === "BUTTON"
-                        ||
-                        current.tagName === "A"
-                        ||
-                        current.getAttribute(
-                            "role"
-                        ) === "button"
-                        ||
-                        current.hasAttribute(
-                            "tabindex"
-                        )
-                        ||
-                        typeof current.onclick ===
-                            "function"
-                        ||
-                        style.cursor === "pointer";
-
-
-                    if (
-                        interactive &&
-                        !isDisabled(current)
-                    ) {
-
-                        return current;
-                    }
-
-
-                    current =
-                        current.parentElement;
-                }
-
-
-                return null;
+                return (
+                    element.tagName === "BUTTON" ||
+                    element.tagName === "A" ||
+                    element.getAttribute(
+                        "role"
+                    ) === "button" ||
+                    element.hasAttribute(
+                        "tabindex"
+                    ) ||
+                    typeof element.onclick ===
+                        "function" ||
+                    style.cursor === "pointer"
+                );
             }
 
 
             // =================================================
-            // 1. TROUVER LE NOEUD TEXTE
-            //
-            // On cherche réellement :
-            //
-            //     Page 1 of 2
-            //
-            // au lieu de se fier au rectangle du parent HTML.
+            // 1. TROUVER L'ÉLÉMENT "Page X of Y"
             // =================================================
 
-            const walker =
-                document.createTreeWalker(
-                    document.body,
-                    NodeFilter.SHOW_TEXT
+            const allElements =
+                Array.from(
+                    document.querySelectorAll("*")
                 );
 
 
-            let textNode = null;
-            let currentNode;
-
-
-            while (
-                currentNode =
-                    walker.nextNode()
-            ) {
-
-                const text =
-                    (
-                        currentNode.nodeValue || ""
-                    ).trim();
-
-
-                if (
-                    /^Page\\s+\\d+\\s+of\\s+\\d+$/i.test(
-                        text
-                    )
-                ) {
-
-                    const parent =
-                        currentNode.parentElement;
-
-
-                    if (
-                        parent &&
-                        isVisible(parent)
-                    ) {
-
-                        textNode =
-                            currentNode;
-
-                        break;
-                    }
-                }
-            }
-
-
-            if (!textNode) {
-
-                return {
-                    clicked: false,
-                    reason:
-                        "pagination_text_node_not_found"
-                };
-            }
-
-
-            // =================================================
-            // 2. OBTENIR LE RECTANGLE RÉEL DU TEXTE
-            // =================================================
-
-            const range =
-                document.createRange();
-
-
-            range.selectNodeContents(
-                textNode
-            );
-
-
-            const textRect =
-                range.getBoundingClientRect();
-
-
-            if (
-                textRect.width <= 0 ||
-                textRect.height <= 0
-            ) {
-
-                return {
-                    clicked: false,
-                    reason:
-                        "pagination_text_has_no_rectangle"
-                };
-            }
-
-
-            // =================================================
-            // 3. INFORMATIONS DE DIAGNOSTIC
-            // =================================================
-
-            const diagnostic = {
-
-                text:
-                    (
-                        textNode.nodeValue || ""
-                    ).trim(),
-
-                left:
-                    Math.round(
-                        textRect.left
-                    ),
-
-                right:
-                    Math.round(
-                        textRect.right
-                    ),
-
-                top:
-                    Math.round(
-                        textRect.top
-                    ),
-
-                bottom:
-                    Math.round(
-                        textRect.bottom
-                    ),
-
-                width:
-                    Math.round(
-                        textRect.width
-                    ),
-
-                height:
-                    Math.round(
-                        textRect.height
-                    )
-
-            };
-
-
-            // =================================================
-            // 4. CHERCHER LES ÉLÉMENTS À DROITE DU TEXTE
-            //
-            // On teste plusieurs positions horizontales.
-            // =================================================
-
-            const centerY =
-                textRect.top +
-                textRect.height / 2;
-
-
-            const offsets = [
-
-                4,
-                8,
-                12,
-                16,
-                20,
-                24,
-                28,
-                32,
-                36,
-                40,
-                44,
-                48,
-                52,
-                56,
-                60
-
-            ];
-
-
-            for (const offset of offsets) {
-
-                const x =
-                    textRect.right +
-                    offset;
-
-
-                const elements =
-                    document.elementsFromPoint(
-                        x,
-                        centerY
-                    );
-
-
-                for (
-                    const element
-                    of elements
-                ) {
-
-                    const clickable =
-                        findClickableParent(
-                            element
-                        );
-
-
-                    if (!clickable) {
-                        continue;
-                    }
-
-
-                    /*
-                    Éviter de cliquer sur le panneau
-                    lui-même ou sur un élément énorme.
-                    */
-
-                    const rect =
-                        clickable.getBoundingClientRect();
-
-
-                    if (
-                        rect.width <= 0 ||
-                        rect.height <= 0
-                    ) {
-                        continue;
-                    }
-
-
-                    if (
-                        rect.width > 100 ||
-                        rect.height > 100
-                    ) {
-                        continue;
-                    }
-
-
-                    /*
-                    Le contrôle Page suivante doit se
-                    trouver à droite du texte.
-                    */
-
-                    if (
-                        rect.right <
-                        textRect.right
-                    ) {
-                        continue;
-                    }
-
-
-                    clickable.scrollIntoView({
-                        block: "nearest",
-                        inline: "nearest"
-                    });
-
-
-                    clickable.click();
-
-
-                    return {
-
-                        clicked: true,
-
-                        reason:
-                            "clicked_control_right_of_text",
-
-                        paginationText:
-                            diagnostic,
-
-                        clickedTag:
-                            clickable.tagName,
-
-                        clickedLeft:
-                            Math.round(
-                                rect.left
-                            ),
-
-                        clickedRight:
-                            Math.round(
-                                rect.right
-                            ),
-
-                        clickedTop:
-                            Math.round(
-                                rect.top
-                            ),
-
-                        clickedWidth:
-                            Math.round(
-                                rect.width
-                            ),
-
-                        clickedHeight:
-                            Math.round(
-                                rect.height
-                            ),
-
-                        offset:
-                            offset
-                    };
-                }
-            }
-
-
-            // =================================================
-            // 5. FALLBACK
-            //
-            // Si elementsFromPoint ne trouve rien,
-            // chercher tous les petits éléments interactifs
-            // situés réellement à droite du texte.
-            // =================================================
-
-            const candidates =
-                Array.from(
-                    document.querySelectorAll("*")
-                )
+            const pageElements =
+                allElements
                 .filter(element => {
 
                     if (!isVisible(element)) {
@@ -1569,105 +1247,247 @@ def click_next_page_button(page):
                     }
 
 
-                    if (isDisabled(element)) {
-                        return false;
-                    }
+                    const text =
+                        (
+                            element.innerText || ""
+                        )
+                        .replace(
+                            /\\s+/g,
+                            " "
+                        )
+                        .trim();
 
+
+                    return (
+                        /^Page \\d+ of \\d+$/i.test(
+                            text
+                        )
+                    );
+
+                })
+                .sort((a, b) => {
+
+                    /*
+                    Le plus petit élément correspondant
+                    est probablement le plus proche du
+                    véritable affichage.
+                    */
+
+                    const rectA =
+                        a.getBoundingClientRect();
+
+                    const rectB =
+                        b.getBoundingClientRect();
+
+
+                    return (
+                        rectA.width *
+                        rectA.height
+                        -
+                        rectB.width *
+                        rectB.height
+                    );
+
+                });
+
+
+            if (
+                pageElements.length === 0
+            ) {
+
+                return {
+                    clicked: false,
+                    reason:
+                        "page_status_not_found"
+                };
+            }
+
+
+            const pageStatus =
+                pageElements[0];
+
+
+            // =================================================
+            // 2. REMONTER LES PARENTS
+            //
+            // On cherche un parent contenant plusieurs
+            // éléments interactifs.
+            // =================================================
+
+            let current =
+                pageStatus;
+
+
+            let paginationContainer =
+                null;
+
+
+            let detectedControls =
+                [];
+
+
+            for (
+                let level = 0;
+                level < 12;
+                level++
+            ) {
+
+                if (!current) {
+                    break;
+                }
+
+
+                const descendants = [
+                    current,
+                    ...Array.from(
+                        current.querySelectorAll("*")
+                    )
+                ];
+
+
+                const interactiveElements =
+                    descendants.filter(
+                        element => {
+
+                            return (
+                                isVisible(element) &&
+                                looksInteractive(element)
+                            );
+
+                        }
+                    );
+
+
+                /*
+                Éliminer les éléments interactifs
+                représentant le même contrôle imbriqué.
+                */
+
+                const rootControls =
+                    interactiveElements.filter(
+                        element => {
+
+                            let parent =
+                                element.parentElement;
+
+
+                            while (
+                                parent &&
+                                parent !== current
+                            ) {
+
+                                if (
+                                    interactiveElements.includes(
+                                        parent
+                                    )
+                                ) {
+
+                                    return false;
+                                }
+
+
+                                parent =
+                                    parent.parentElement;
+                            }
+
+
+                            return true;
+
+                        }
+                    );
+
+
+                /*
+                La barre observée possède normalement
+                quatre contrôles :
+
+                    Première
+                    Précédente
+                    Suivante
+                    Dernière
+
+                On accepte au moins deux contrôles
+                actifs/visibles pour être plus robuste.
+                */
+
+                if (
+                    rootControls.length >= 2
+                ) {
+
+                    paginationContainer =
+                        current;
+
+                    detectedControls =
+                        rootControls;
+
+                    break;
+                }
+
+
+                current =
+                    current.parentElement;
+            }
+
+
+            if (!paginationContainer) {
+
+                return {
+                    clicked: false,
+                    reason:
+                        "pagination_container_not_found"
+                };
+            }
+
+
+            // =================================================
+            // 3. RECONSTRUIRE LES CONTRÔLES
+            // =================================================
+
+            const containerRect =
+                paginationContainer
+                    .getBoundingClientRect();
+
+
+            let controls =
+                detectedControls
+                .filter(element => {
 
                     const rect =
                         element.getBoundingClientRect();
 
 
-                    const style =
-                        window.getComputedStyle(
-                            element
-                        );
-
-
-                    const interactive =
-                        element.tagName ===
-                            "BUTTON"
-                        ||
-                        element.tagName ===
-                            "A"
-                        ||
-                        element.getAttribute(
-                            "role"
-                        ) === "button"
-                        ||
-                        element.hasAttribute(
-                            "tabindex"
-                        )
-                        ||
-                        typeof element.onclick ===
-                            "function"
-                        ||
-                        style.cursor ===
-                            "pointer";
-
-
-                    if (!interactive) {
-                        return false;
-                    }
-
-
-                    const elementCenterY =
-                        rect.top +
-                        rect.height / 2;
-
-
-                    const verticallyAligned =
-                        Math.abs(
-                            elementCenterY -
-                            centerY
-                        ) < 30;
-
-
-                    const onRight =
-                        rect.left >=
-                        textRect.right - 5;
-
-
-                    const closeEnough =
-                        rect.left -
-                        textRect.right <
-                        120;
-
-
-                    const reasonableSize =
-                        rect.width > 5
-                        &&
-                        rect.width < 100
-                        &&
-                        rect.height > 5
-                        &&
-                        rect.height < 100;
-
+                    /*
+                    On garde uniquement les petits
+                    contrôles faisant partie du panneau.
+                    */
 
                     return (
-                        verticallyAligned
-                        &&
-                        onRight
-                        &&
-                        closeEnough
-                        &&
-                        reasonableSize
+                        rect.width > 0 &&
+                        rect.height > 0 &&
+                        rect.width < 100 &&
+                        rect.height < 100
                     );
 
                 });
 
 
             // =================================================
-            // 6. TRIER DE GAUCHE À DROITE
+            // 4. TRIER DE GAUCHE À DROITE
             // =================================================
 
-            candidates.sort(
+            controls.sort(
                 (a, b) => {
 
+                    const rectA =
+                        a.getBoundingClientRect();
+
+                    const rectB =
+                        b.getBoundingClientRect();
+
+
                     return (
-                        a.getBoundingClientRect().left
-                        -
-                        b.getBoundingClientRect().left
+                        rectA.left -
+                        rectB.left
                     );
 
                 }
@@ -1675,68 +1495,289 @@ def click_next_page_button(page):
 
 
             // =================================================
-            // 7. ÉLIMINER LES DOUBLONS HTML
+            // 5. ÉLIMINER LES DOUBLONS DE POSITION
             // =================================================
 
-            const uniqueCandidates = [];
+            const uniqueControls =
+                [];
 
 
             for (
-                const candidate
-                of candidates
+                const control
+                of controls
             ) {
 
                 const rect =
-                    candidate.getBoundingClientRect();
+                    control.getBoundingClientRect();
 
 
-                const duplicate =
-                    uniqueCandidates.some(
+                const alreadyPresent =
+                    uniqueControls.some(
                         existing => {
 
                             const existingRect =
-                                existing.getBoundingClientRect();
+                                existing
+                                    .getBoundingClientRect();
 
 
                             return (
                                 Math.abs(
                                     existingRect.left -
                                     rect.left
-                                ) < 3
+                                ) < 4
                                 &&
                                 Math.abs(
                                     existingRect.top -
                                     rect.top
-                                ) < 3
+                                ) < 4
                             );
 
                         }
                     );
 
 
-                if (!duplicate) {
+                if (!alreadyPresent) {
 
-                    uniqueCandidates.push(
-                        candidate
+                    uniqueControls.push(
+                        control
                     );
                 }
             }
 
 
             // =================================================
-            // 8. PREMIER ÉLÉMENT À DROITE
+            // 6. CRÉER LE DIAGNOSTIC
+            // =================================================
+
+            const diagnosticControls =
+                uniqueControls.map(
+                    (control, index) => {
+
+                        const rect =
+                            control
+                                .getBoundingClientRect();
+
+
+                        return {
+
+                            index:
+                                index,
+
+                            tag:
+                                control.tagName,
+
+                            text:
+                                (
+                                    control.innerText ||
+                                    ""
+                                )
+                                .replace(
+                                    /\\s+/g,
+                                    " "
+                                )
+                                .trim(),
+
+                            ariaLabel:
+                                control.getAttribute(
+                                    "aria-label"
+                                ),
+
+                            title:
+                                control.getAttribute(
+                                    "title"
+                                ),
+
+                            disabled:
+                                isDisabled(
+                                    control
+                                ),
+
+                            left:
+                                Math.round(
+                                    rect.left
+                                ),
+
+                            top:
+                                Math.round(
+                                    rect.top
+                                ),
+
+                            width:
+                                Math.round(
+                                    rect.width
+                                ),
+
+                            height:
+                                Math.round(
+                                    rect.height
+                                )
+
+                        };
+
+                    }
+                );
+
+
+            // =================================================
+            // 7. CHERCHER D'ABORD PAR ACCESSIBILITÉ
+            // =================================================
+
+            for (
+                const control
+                of uniqueControls
+            ) {
+
+                if (
+                    isDisabled(control)
+                ) {
+                    continue;
+                }
+
+
+                const description = [
+
+                    control.getAttribute(
+                        "aria-label"
+                    ),
+
+                    control.getAttribute(
+                        "title"
+                    ),
+
+                    control.innerText,
+
+                    control.textContent
+
+                ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+
+
+                if (
+                    description.includes(
+                        "next"
+                    )
+                    ||
+                    description.includes(
+                        "suivante"
+                    )
+                    ||
+                    description.includes(
+                        "suivant"
+                    )
+                ) {
+
+                    control.scrollIntoView({
+                        block: "nearest",
+                        inline: "nearest"
+                    });
+
+
+                    control.click();
+
+
+                    return {
+
+                        clicked: true,
+
+                        reason:
+                            "next_control_found_by_accessibility",
+
+                        controls:
+                            diagnosticControls
+
+                    };
+                }
+            }
+
+
+            // =================================================
+            // 8. SINON UTILISER L'ORDRE DES 4 CONTRÔLES
+            //
+            // Configuration observée :
+            //
+            // 0 = première page
+            // 1 = page précédente
+            // 2 = page suivante
+            // 3 = dernière page
+            //
+            // Sur la page 1, les deux premiers peuvent
+            // être désactivés.
             // =================================================
 
             if (
-                uniqueCandidates.length > 0
+                uniqueControls.length >= 4
             ) {
 
                 const nextButton =
-                    uniqueCandidates[0];
+                    uniqueControls[2];
 
 
-                const rect =
-                    nextButton.getBoundingClientRect();
+                if (
+                    !isDisabled(
+                        nextButton
+                    )
+                ) {
+
+                    nextButton.scrollIntoView({
+                        block: "nearest",
+                        inline: "nearest"
+                    });
+
+
+                    nextButton.click();
+
+
+                    return {
+
+                        clicked: true,
+
+                        reason:
+                            "next_control_by_order",
+
+                        selectedIndex:
+                            2,
+
+                        controls:
+                            diagnosticControls
+
+                    };
+                }
+            }
+
+
+            // =================================================
+            // 9. FALLBACK :
+            // CONTRÔLES ACTIFS APRÈS LES CONTRÔLES DÉSACTIVÉS
+            // =================================================
+
+            const enabledControls =
+                uniqueControls.filter(
+                    element =>
+                        !isDisabled(
+                            element
+                        )
+                );
+
+
+            /*
+            Sur Page 1 :
+                Première      désactivé
+                Précédente    désactivé
+                Suivante      actif
+                Dernière      actif
+
+            Le premier contrôle actif devrait donc être
+            Page suivante.
+            */
+
+            if (
+                enabledControls.length >= 1
+            ) {
+
+                const nextButton =
+                    enabledControls[0];
 
 
                 nextButton.scrollIntoView({
@@ -1753,36 +1794,10 @@ def click_next_page_button(page):
                     clicked: true,
 
                     reason:
-                        "fallback_control_right_of_text",
+                        "first_enabled_pagination_control",
 
-                    paginationText:
-                        diagnostic,
-
-                    candidatesFound:
-                        uniqueCandidates.length,
-
-                    clickedTag:
-                        nextButton.tagName,
-
-                    clickedLeft:
-                        Math.round(
-                            rect.left
-                        ),
-
-                    clickedRight:
-                        Math.round(
-                            rect.right
-                        ),
-
-                    clickedWidth:
-                        Math.round(
-                            rect.width
-                        ),
-
-                    clickedHeight:
-                        Math.round(
-                            rect.height
-                        )
+                    controls:
+                        diagnosticControls
 
                 };
             }
@@ -1797,13 +1812,42 @@ def click_next_page_button(page):
                 clicked: false,
 
                 reason:
-                    "next_page_control_not_found",
+                    "no_next_page_control",
 
-                paginationText:
-                    diagnostic,
+                pageText:
+                    (
+                        pageStatus.innerText ||
+                        ""
+                    )
+                    .replace(
+                        /\\s+/g,
+                        " "
+                    )
+                    .trim(),
 
-                candidatesFound:
-                    uniqueCandidates.length
+                containerText:
+                    (
+                        paginationContainer.innerText ||
+                        ""
+                    )
+                    .replace(
+                        /\\s+/g,
+                        " "
+                    )
+                    .trim(),
+
+                containerLeft:
+                    Math.round(
+                        containerRect.left
+                    ),
+
+                containerWidth:
+                    Math.round(
+                        containerRect.width
+                    ),
+
+                controls:
+                    diagnosticControls
 
             };
         }
@@ -1829,6 +1873,7 @@ def click_next_page_button(page):
     )
 
     return True
+    
 def wait_for_page_number(
     page,
     expected_page,
