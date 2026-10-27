@@ -594,6 +594,7 @@ def get_pagination_status(page):
             );
 
             for (const element of elements) {
+
                 if (!isVisible(element)) {
                     continue;
                 }
@@ -607,6 +608,7 @@ def get_pagination_status(page):
                 );
 
                 if (match) {
+
                     return {
                         current: Number(match[1]),
                         total: Number(match[2])
@@ -681,10 +683,12 @@ def scroll_current_page(page):
                     document.querySelectorAll("*");
 
                 for (const element of elements) {
+
                     if (
                         element.scrollHeight >
                         element.clientHeight + 5
                     ) {
+
                         element.scrollTop =
                             element.scrollHeight;
 
@@ -775,7 +779,9 @@ def open_pagination_panel(page):
     result = page.evaluate(
         """
         () => {
+
             function isVisible(element) {
+
                 const rect =
                     element.getBoundingClientRect();
 
@@ -792,6 +798,7 @@ def open_pagination_panel(page):
             }
 
             function isDisabled(element) {
+
                 return (
                     element.disabled === true ||
                     element.hasAttribute("disabled") ||
@@ -801,16 +808,12 @@ def open_pagination_panel(page):
                 );
             }
 
-            /*
-            Trouver l'élément visible contenant seulement
-            le compteur de records.
-            */
-
             const recordCandidates =
                 Array.from(
                     document.querySelectorAll("*")
                 )
                 .filter(element => {
+
                     if (!isVisible(element)) {
                         return false;
                     }
@@ -826,6 +829,7 @@ def open_pagination_panel(page):
                     );
                 })
                 .sort((a, b) => {
+
                     const rectA =
                         a.getBoundingClientRect();
 
@@ -840,6 +844,7 @@ def open_pagination_panel(page):
                 });
 
             if (recordCandidates.length === 0) {
+
                 return {
                     clicked: false,
                     reason:
@@ -853,11 +858,6 @@ def open_pagination_panel(page):
             const recordRect =
                 recordElement.getBoundingClientRect();
 
-            /*
-            Chercher un contrôle visible situé
-            immédiatement à gauche du compteur.
-            */
-
             const controls = Array.from(
                 document.querySelectorAll(
                     [
@@ -869,6 +869,7 @@ def open_pagination_panel(page):
                 )
             )
                 .filter(element => {
+
                     if (
                         !isVisible(element) ||
                         isDisabled(element)
@@ -915,6 +916,7 @@ def open_pagination_panel(page):
                     );
                 })
                 .sort((a, b) => {
+
                     const rectA =
                         a.getBoundingClientRect();
 
@@ -935,6 +937,7 @@ def open_pagination_panel(page):
                 });
 
             if (controls.length === 0) {
+
                 return {
                     clicked: false,
                     reason:
@@ -967,7 +970,9 @@ def open_pagination_panel(page):
         fallback_clicked = page.evaluate(
             """
             () => {
+
                 function isVisible(element) {
+
                     const rect =
                         element.getBoundingClientRect();
 
@@ -987,6 +992,7 @@ def open_pagination_panel(page):
                         document.querySelectorAll("*")
                     )
                     .filter(element => {
+
                         const text = (
                             element.innerText || ""
                         ).trim();
@@ -999,6 +1005,7 @@ def open_pagination_panel(page):
                         );
                     })
                     .sort((a, b) => {
+
                         const rectA =
                             a.getBoundingClientRect();
 
@@ -1021,10 +1028,6 @@ def open_pagination_panel(page):
 
                 const recordRect =
                     recordElement.getBoundingClientRect();
-
-                /*
-                Cliquer légèrement à gauche du compteur.
-                */
 
                 const x = Math.max(
                     5,
@@ -1075,11 +1078,13 @@ def open_pagination_panel(page):
         page.wait_for_function(
             """
             () => {
+
                 const elements = Array.from(
                     document.querySelectorAll("*")
                 );
 
                 return elements.some(element => {
+
                     const text = (
                         element.innerText || ""
                     ).trim();
@@ -1160,10 +1165,6 @@ def click_next_page_button(page):
         """
         () => {
 
-            // =================================================
-            // OUTILS
-            // =================================================
-
             function isVisible(element) {
 
                 if (!element) {
@@ -1184,7 +1185,6 @@ def click_next_page_button(page):
                 );
             }
 
-
             function isDisabled(element) {
 
                 if (!element) {
@@ -1199,7 +1199,6 @@ def click_next_page_button(page):
                     ) === "true"
                 );
             }
-
 
             function looksInteractive(element) {
 
@@ -1227,16 +1226,10 @@ def click_next_page_button(page):
                 );
             }
 
-
-            // =================================================
-            // 1. TROUVER L'ÉLÉMENT "Page X of Y"
-            // =================================================
-
             const allElements =
                 Array.from(
                     document.querySelectorAll("*")
                 );
-
 
             const pageElements =
                 allElements
@@ -1245,7 +1238,6 @@ def click_next_page_button(page):
                     if (!isVisible(element)) {
                         return false;
                     }
-
 
                     const text =
                         (
@@ -1257,28 +1249,19 @@ def click_next_page_button(page):
                         )
                         .trim();
 
-
                     return (
                         /^Page \\d+ of \\d+$/i.test(
                             text
                         )
                     );
-
                 })
                 .sort((a, b) => {
-
-                    /*
-                    Le plus petit élément correspondant
-                    est probablement le plus proche du
-                    véritable affichage.
-                    */
 
                     const rectA =
                         a.getBoundingClientRect();
 
                     const rectB =
                         b.getBoundingClientRect();
-
 
                     return (
                         rectA.width *
@@ -1287,9 +1270,7 @@ def click_next_page_button(page):
                         rectB.width *
                         rectB.height
                     );
-
                 });
-
 
             if (
                 pageElements.length === 0
@@ -1302,29 +1283,17 @@ def click_next_page_button(page):
                 };
             }
 
-
             const pageStatus =
                 pageElements[0];
-
-
-            // =================================================
-            // 2. REMONTER LES PARENTS
-            //
-            // On cherche un parent contenant plusieurs
-            // éléments interactifs.
-            // =================================================
 
             let current =
                 pageStatus;
 
-
             let paginationContainer =
                 null;
 
-
             let detectedControls =
                 [];
-
 
             for (
                 let level = 0;
@@ -1336,14 +1305,12 @@ def click_next_page_button(page):
                     break;
                 }
 
-
                 const descendants = [
                     current,
                     ...Array.from(
                         current.querySelectorAll("*")
                     )
                 ];
-
 
                 const interactiveElements =
                     descendants.filter(
@@ -1353,15 +1320,8 @@ def click_next_page_button(page):
                                 isVisible(element) &&
                                 looksInteractive(element)
                             );
-
                         }
                     );
-
-
-                /*
-                Éliminer les éléments interactifs
-                représentant le même contrôle imbriqué.
-                */
 
                 const rootControls =
                     interactiveElements.filter(
@@ -1369,7 +1329,6 @@ def click_next_page_button(page):
 
                             let parent =
                                 element.parentElement;
-
 
                             while (
                                 parent &&
@@ -1381,34 +1340,16 @@ def click_next_page_button(page):
                                         parent
                                     )
                                 ) {
-
                                     return false;
                                 }
-
 
                                 parent =
                                     parent.parentElement;
                             }
 
-
                             return true;
-
                         }
                     );
-
-
-                /*
-                La barre observée possède normalement
-                quatre contrôles :
-
-                    Première
-                    Précédente
-                    Suivante
-                    Dernière
-
-                On accepte au moins deux contrôles
-                actifs/visibles pour être plus robuste.
-                */
 
                 if (
                     rootControls.length >= 2
@@ -1423,11 +1364,9 @@ def click_next_page_button(page):
                     break;
                 }
 
-
                 current =
                     current.parentElement;
             }
-
 
             if (!paginationContainer) {
 
@@ -1438,15 +1377,9 @@ def click_next_page_button(page):
                 };
             }
 
-
-            // =================================================
-            // 3. RECONSTRUIRE LES CONTRÔLES
-            // =================================================
-
             const containerRect =
                 paginationContainer
                     .getBoundingClientRect();
-
 
             let controls =
                 detectedControls
@@ -1455,25 +1388,13 @@ def click_next_page_button(page):
                     const rect =
                         element.getBoundingClientRect();
 
-
-                    /*
-                    On garde uniquement les petits
-                    contrôles faisant partie du panneau.
-                    */
-
                     return (
                         rect.width > 0 &&
                         rect.height > 0 &&
                         rect.width < 100 &&
                         rect.height < 100
                     );
-
                 });
-
-
-            // =================================================
-            // 4. TRIER DE GAUCHE À DROITE
-            // =================================================
 
             controls.sort(
                 (a, b) => {
@@ -1484,23 +1405,15 @@ def click_next_page_button(page):
                     const rectB =
                         b.getBoundingClientRect();
 
-
                     return (
                         rectA.left -
                         rectB.left
                     );
-
                 }
             );
 
-
-            // =================================================
-            // 5. ÉLIMINER LES DOUBLONS DE POSITION
-            // =================================================
-
             const uniqueControls =
                 [];
-
 
             for (
                 const control
@@ -1510,7 +1423,6 @@ def click_next_page_button(page):
                 const rect =
                     control.getBoundingClientRect();
 
-
                 const alreadyPresent =
                     uniqueControls.some(
                         existing => {
@@ -1518,7 +1430,6 @@ def click_next_page_button(page):
                             const existingRect =
                                 existing
                                     .getBoundingClientRect();
-
 
                             return (
                                 Math.abs(
@@ -1531,10 +1442,8 @@ def click_next_page_button(page):
                                     rect.top
                                 ) < 4
                             );
-
                         }
                     );
-
 
                 if (!alreadyPresent) {
 
@@ -1544,11 +1453,6 @@ def click_next_page_button(page):
                 }
             }
 
-
-            // =================================================
-            // 6. CRÉER LE DIAGNOSTIC
-            // =================================================
-
             const diagnosticControls =
                 uniqueControls.map(
                     (control, index) => {
@@ -1556,7 +1460,6 @@ def click_next_page_button(page):
                         const rect =
                             control
                                 .getBoundingClientRect();
-
 
                         return {
 
@@ -1611,16 +1514,9 @@ def click_next_page_button(page):
                                 Math.round(
                                     rect.height
                                 )
-
                         };
-
                     }
                 );
-
-
-            // =================================================
-            // 7. CHERCHER D'ABORD PAR ACCESSIBILITÉ
-            // =================================================
 
             for (
                 const control
@@ -1632,7 +1528,6 @@ def click_next_page_button(page):
                 ) {
                     continue;
                 }
-
 
                 const description = [
 
@@ -1653,7 +1548,6 @@ def click_next_page_button(page):
                 .join(" ")
                 .toLowerCase();
 
-
                 if (
                     description.includes(
                         "next"
@@ -1673,9 +1567,7 @@ def click_next_page_button(page):
                         inline: "nearest"
                     });
 
-
                     control.click();
-
 
                     return {
 
@@ -1686,25 +1578,9 @@ def click_next_page_button(page):
 
                         controls:
                             diagnosticControls
-
                     };
                 }
             }
-
-
-            // =================================================
-            // 8. SINON UTILISER L'ORDRE DES 4 CONTRÔLES
-            //
-            // Configuration observée :
-            //
-            // 0 = première page
-            // 1 = page précédente
-            // 2 = page suivante
-            // 3 = dernière page
-            //
-            // Sur la page 1, les deux premiers peuvent
-            // être désactivés.
-            // =================================================
 
             if (
                 uniqueControls.length >= 4
@@ -1712,7 +1588,6 @@ def click_next_page_button(page):
 
                 const nextButton =
                     uniqueControls[2];
-
 
                 if (
                     !isDisabled(
@@ -1725,9 +1600,7 @@ def click_next_page_button(page):
                         inline: "nearest"
                     });
 
-
                     nextButton.click();
-
 
                     return {
 
@@ -1741,16 +1614,9 @@ def click_next_page_button(page):
 
                         controls:
                             diagnosticControls
-
                     };
                 }
             }
-
-
-            // =================================================
-            // 9. FALLBACK :
-            // CONTRÔLES ACTIFS APRÈS LES CONTRÔLES DÉSACTIVÉS
-            // =================================================
 
             const enabledControls =
                 uniqueControls.filter(
@@ -1760,18 +1626,6 @@ def click_next_page_button(page):
                         )
                 );
 
-
-            /*
-            Sur Page 1 :
-                Première      désactivé
-                Précédente    désactivé
-                Suivante      actif
-                Dernière      actif
-
-            Le premier contrôle actif devrait donc être
-            Page suivante.
-            */
-
             if (
                 enabledControls.length >= 1
             ) {
@@ -1779,15 +1633,12 @@ def click_next_page_button(page):
                 const nextButton =
                     enabledControls[0];
 
-
                 nextButton.scrollIntoView({
                     block: "nearest",
                     inline: "nearest"
                 });
 
-
                 nextButton.click();
-
 
                 return {
 
@@ -1798,14 +1649,8 @@ def click_next_page_button(page):
 
                     controls:
                         diagnosticControls
-
                 };
             }
-
-
-            // =================================================
-            // ÉCHEC
-            // =================================================
 
             return {
 
@@ -1848,18 +1693,15 @@ def click_next_page_button(page):
 
                 controls:
                     diagnosticControls
-
             };
         }
         """
     )
 
-
     print(
         "Résultat détection Page suivante : "
         f"{result}"
     )
-
 
     if not result.get(
         "clicked"
@@ -1867,13 +1709,13 @@ def click_next_page_button(page):
 
         return False
 
-
     print(
         "Bouton Page suivante cliqué."
     )
 
     return True
-    
+
+
 def wait_for_page_number(
     page,
     expected_page,
@@ -1882,11 +1724,13 @@ def wait_for_page_number(
     page.wait_for_function(
         """
         expectedPage => {
+
             const elements = Array.from(
                 document.querySelectorAll("*")
             );
 
             return elements.some(element => {
+
                 const text = (
                     element.innerText || ""
                 ).trim();
@@ -2025,6 +1869,7 @@ def load_all_pages(page):
         )
 
         print("")
+
         print(
             f"Passage de la page "
             f"{current_page} "
@@ -2170,6 +2015,7 @@ def load_all_pages(page):
         )
 
     print("")
+
     print(
         "Toutes les pages Zapier "
         "ont été parcourues."
@@ -2269,6 +2115,49 @@ def deduplicate_records(candidates):
 
 
 # ============================================================
+# TRI DES DATES
+# ============================================================
+
+def parse_sort_date(row):
+    """
+    Convertit la colonne Date au format ISO :
+
+        2026-09-10T12:34:39Z
+
+    en datetime afin de permettre un tri chronologique fiable.
+
+    Une date vide ou invalide reçoit datetime.min et sera
+    donc placée à la fin lorsque reverse=True.
+    """
+
+    value = row.get(
+        "Date",
+        "",
+    )
+
+    if value is None:
+        return datetime.min
+
+    value = str(
+        value
+    ).strip()
+
+    if not value:
+        return datetime.min
+
+    try:
+
+        return datetime.strptime(
+            value,
+            "%Y-%m-%dT%H:%M:%SZ",
+        )
+
+    except (ValueError, TypeError):
+
+        return datetime.min
+
+
+# ============================================================
 # EXPORT CSV
 # ============================================================
 
@@ -2302,21 +2191,27 @@ def write_csv(records):
 def write_debug_file():
 
     debug_content = {
+
         "table_id": TABLE_ID,
+
         "captured_response_count": len(
             captured_json
         ),
+
         "records_query_response_count": (
             count_records_query_responses()
         ),
+
         "recognized_fields": sorted(
             set(
                 field_map.values()
             )
         ),
+
         "candidate_count": len(
             extracted_records
         ),
+
         "responses": captured_json,
     }
 
@@ -2552,29 +2447,23 @@ def main():
 
         sys.exit(1)
 
-# --------------------------------------------------------
-# Tri par Date - ordre décroissant
-# --------------------------------------------------------
+    # --------------------------------------------------------
+    # Tri par Date - ordre décroissant
+    #
+    # Exemple :
+    #
+    # 2026-10-27T15:45:00Z
+    # 2026-10-27T08:30:00Z
+    # 2026-10-26T16:00:00Z
+    # 2026-09-10T12:34:39Z
+    #
+    # Les dates invalides ou vides sont placées à la fin.
+    # --------------------------------------------------------
 
-def parse_sort_date(row):
-    value = row.get(
-        "Date",
-        "",
-    ).strip()
-
-    try:
-        return datetime.strptime(
-            value,
-            "%Y-%m-%dT%H:%M:%SZ",
-        )
-    except (ValueError, TypeError):
-        return datetime.min
-
-
-records.sort(
-    key=parse_sort_date,
-    reverse=True,
-)
+    records.sort(
+        key=parse_sort_date,
+        reverse=True,
+    )
 
     # --------------------------------------------------------
     # CSV
@@ -2617,6 +2506,11 @@ records.sort(
     print(
         f"Debug : "
         f"{DEBUG_FILE}"
+    )
+
+    print(
+        "Tri : Date décroissante "
+        "(plus récente vers plus ancienne)"
     )
 
     print(
