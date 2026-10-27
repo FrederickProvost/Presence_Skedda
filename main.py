@@ -2552,22 +2552,29 @@ def main():
 
         sys.exit(1)
 
-    # --------------------------------------------------------
-    # Tri
-    # --------------------------------------------------------
+# --------------------------------------------------------
+# Tri par Date - ordre décroissant
+# --------------------------------------------------------
 
-    records.sort(
-        key=lambda row: (
-            row.get(
-                "Start Date",
-                "",
-            ),
-            row.get(
-                "Booking ID",
-                "",
-            ),
+def parse_sort_date(row):
+    value = row.get(
+        "Date",
+        "",
+    ).strip()
+
+    try:
+        return datetime.strptime(
+            value,
+            "%Y-%m-%dT%H:%M:%SZ",
         )
-    )
+    except (ValueError, TypeError):
+        return datetime.min
+
+
+records.sort(
+    key=parse_sort_date,
+    reverse=True,
+)
 
     # --------------------------------------------------------
     # CSV
