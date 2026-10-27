@@ -21,14 +21,17 @@ SCRIPT_FOLDER = Path(__file__).resolve().parent
 
 OUTPUT_FILE = SCRIPT_FOLDER / "Presence_Skedda.csv"
 DEBUG_FILE = SCRIPT_FOLDER / "zapier_debug.json"
+SCREENSHOT_FILE = SCRIPT_FOLDER / "zapier_pagination_error.png"
 
+# Chromium doit fonctionner sans interface graphique
 HEADLESS = True
 
 PAGE_TIMEOUT_MS = 120_000
 WAIT_AFTER_LOAD_MS = 8_000
 WAIT_AFTER_PAGE_CHANGE_MS = 3_000
 
-MAX_PAGES_SAFETY = 500
+# Protection contre une boucle infinie
+MAX_PAGES = 500
 
 
 # ============================================================
@@ -60,14 +63,13 @@ captured_json = []
 field_map = {}
 extracted_records = []
 
-capture_enabled = True
-
 
 # ============================================================
 # OUTILS
 # ============================================================
 
 def normalize_key(value):
+
     if value is None:
         return ""
 
@@ -79,6 +81,7 @@ def normalize_key(value):
 
 
 def serialize_value(value):
+
     if value is None:
         return ""
 
@@ -86,10 +89,13 @@ def serialize_value(value):
         return "true" if value else "false"
 
     if isinstance(value, list):
+
         simple_values = []
 
         for item in value:
+
             if isinstance(item, dict):
+
                 possible_value = (
                     item.get("value")
                     or item.get("name")
@@ -99,8 +105,13 @@ def serialize_value(value):
                 )
 
                 if possible_value is not None:
-                    simple_values.append(str(possible_value))
+
+                    simple_values.append(
+                        str(possible_value)
+                    )
+
                 else:
+
                     simple_values.append(
                         json.dumps(
                             item,
@@ -108,12 +119,17 @@ def serialize_value(value):
                             separators=(",", ":"),
                         )
                     )
+
             else:
-                simple_values.append(str(item))
+
+                simple_values.append(
+                    str(item)
+                )
 
         return ", ".join(simple_values)
 
     if isinstance(value, dict):
+
         possible_value = (
             value.get("value")
             or value.get("name")
@@ -122,7 +138,10 @@ def serialize_value(value):
         )
 
         if possible_value is not None:
-            return serialize_value(possible_value)
+
+            return serialize_value(
+                possible_value
+            )
 
         return json.dumps(
             value,
@@ -134,7 +153,10 @@ def serialize_value(value):
 
 
 def extract_last_key(source_key):
-    source_key = str(source_key).strip()
+
+    source_key = str(
+        source_key
+    ).strip()
 
     parts = re.split(
         r"[.\[\]/]",
@@ -154,12 +176,14 @@ def extract_last_key(source_key):
 
 
 def flatten_dict(source, parent_key=""):
+
     output = {}
 
     if not isinstance(source, dict):
         return output
 
     for key, value in source.items():
+
         full_key = (
             f"{parent_key}.{key}"
             if parent_key
@@ -167,26 +191,35 @@ def flatten_dict(source, parent_key=""):
         )
 
         if isinstance(value, dict):
+
             output.update(
                 flatten_dict(
                     value,
                     full_key,
                 )
             )
+
         else:
+
             output[full_key] = value
 
     return output
 
 
 # ============================================================
-# CHAMPS
+# DÉFINITIONS DES CHAMPS
 # ============================================================
 
 def inspect_field_definitions(obj):
+
     if isinstance(obj, list):
+
         for item in obj:
-            inspect_field_definitions(item)
+
+            inspect_field_definitions(
+                item
+            )
+
         return
 
     if not isinstance(obj, dict):
@@ -211,57 +244,96 @@ def inspect_field_definitions(obj):
         possible_id is not None
         and possible_name is not None
     ):
-        possible_name = str(possible_name).strip()
+
+        possible_name = str(
+            possible_name
+        ).strip()
 
         expected_lookup = {
             normalize_key(column): column
             for column in EXPECTED_COLUMNS
         }
 
-        normalized_name = normalize_key(possible_name)
+        normalized_name = normalize_key(
+            possible_name
+        )
 
         if normalized_name in expected_lookup:
-            official_name = expected_lookup[normalized_name]
-            field_id = str(possible_id).strip()
 
-            field_map[field_id] = official_name
-            field_map[f"f{field_id}"] = official_name
+            official_name = expected_lookup[
+                normalized_name
+            ]
+
+            field_id = str(
+                possible_id
+            ).strip()
+
+            field_map[field_id] = (
+                official_name
+            )
+
+            field_map[
+                f"f{field_id}"
+            ] = official_name
 
     for value in obj.values():
-        inspect_field_definitions(value)
+
+        inspect_field_definitions(
+            value
+        )
 
 
 # ============================================================
-# CORRESPONDANCE CHAMPS
+# CORRESPONDANCE DES CHAMPS
 # ============================================================
 
 def get_column_name(source_key):
-    source_key = str(source_key).strip()
+
+    source_key = str(
+        source_key
+    ).strip()
 
     candidates = [
         source_key,
-        extract_last_key(source_key),
+        extract_last_key(
+            source_key
+        ),
     ]
 
     for candidate in candidates:
+
         if candidate in field_map:
-            return field_map[candidate]
+
+            return field_map[
+                candidate
+            ]
 
         if candidate.startswith("f"):
+
             without_f = candidate[1:]
 
             if without_f in field_map:
-                return field_map[without_f]
 
-    normalized_source = normalize_key(source_key)
+                return field_map[
+                    without_f
+                ]
+
+    normalized_source = normalize_key(
+        source_key
+    )
 
     for column in EXPECTED_COLUMNS:
-        normalized_column = normalize_key(column)
+
+        normalized_column = normalize_key(
+            column
+        )
 
         if normalized_source == normalized_column:
             return column
 
-        if normalized_source.endswith(normalized_column):
+        if normalized_source.endswith(
+            normalized_column
+        ):
             return column
 
     return None
@@ -272,6 +344,7 @@ def get_column_name(source_key):
 # ============================================================
 
 def convert_object_to_row(obj):
+
     if not isinstance(obj, dict):
         return None, 0
 
@@ -282,14 +355,25 @@ def convert_object_to_row(obj):
 
     matched_columns = set()
 
-    flattened = flatten_dict(obj)
+    flattened = flatten_dict(
+        obj
+    )
 
     for source_key, value in flattened.items():
-        column = get_column_name(source_key)
+
+        column = get_column_name(
+            source_key
+        )
 
         if column is not None:
-            row[column] = serialize_value(value)
-            matched_columns.add(column)
+
+            row[column] = serialize_value(
+                value
+            )
+
+            matched_columns.add(
+                column
+            )
 
     for possible_container in [
         "cells",
@@ -297,13 +381,23 @@ def convert_object_to_row(obj):
         "fields",
         "data",
     ]:
-        container = obj.get(possible_container)
 
-        if not isinstance(container, list):
+        container = obj.get(
+            possible_container
+        )
+
+        if not isinstance(
+            container,
+            list
+        ):
             continue
 
         for cell in container:
-            if not isinstance(cell, dict):
+
+            if not isinstance(
+                cell,
+                dict
+            ):
                 continue
 
             cell_field_id = (
@@ -315,20 +409,37 @@ def convert_object_to_row(obj):
             )
 
             if "value" in cell:
-                cell_value = cell.get("value")
+
+                cell_value = cell.get(
+                    "value"
+                )
+
             else:
-                cell_value = cell.get("data")
+
+                cell_value = cell.get(
+                    "data"
+                )
 
             if cell_field_id is None:
                 continue
 
-            column = get_column_name(cell_field_id)
+            column = get_column_name(
+                cell_field_id
+            )
 
             if column is not None:
-                row[column] = serialize_value(cell_value)
-                matched_columns.add(column)
 
-    score = len(matched_columns)
+                row[column] = serialize_value(
+                    cell_value
+                )
+
+                matched_columns.add(
+                    column
+                )
+
+    score = len(
+        matched_columns
+    )
 
     return row, score
 
@@ -337,21 +448,33 @@ def convert_object_to_row(obj):
 # RECHERCHE RÉCURSIVE
 # ============================================================
 
-def inspect_for_records(obj, path="root"):
+def inspect_for_records(
+    obj,
+    path="root",
+):
+
     if isinstance(obj, list):
-        for index, item in enumerate(obj):
+
+        for index, item in enumerate(
+            obj
+        ):
+
             inspect_for_records(
                 item,
                 f"{path}[{index}]",
             )
+
         return
 
     if not isinstance(obj, dict):
         return
 
-    row, score = convert_object_to_row(obj)
+    row, score = convert_object_to_row(
+        obj
+    )
 
     if score >= 3:
+
         extracted_records.append(
             {
                 "path": path,
@@ -361,7 +484,12 @@ def inspect_for_records(obj, path="root"):
         )
 
     for key, value in obj.items():
-        if isinstance(value, (dict, list)):
+
+        if isinstance(
+            value,
+            (dict, list),
+        ):
+
             inspect_for_records(
                 value,
                 f"{path}.{key}",
@@ -373,9 +501,9 @@ def inspect_for_records(obj, path="root"):
 # ============================================================
 
 def capture_response(response):
-    global capture_enabled
 
     try:
+
         response_url = response.url
 
         content_type = response.headers.get(
@@ -391,22 +519,6 @@ def capture_response(response):
 
         data = response.json()
 
-        # Les définitions de champs sont toujours utiles
-        if "/fields" in response_url:
-            inspect_field_definitions(data)
-
-            print("Définitions des champs reçues.")
-
-            return
-
-        # On ignore les réponses d'enregistrements pendant
-        # la navigation initiale vers la première page.
-        if (
-            "/records/query" in response_url
-            and not capture_enabled
-        ):
-            return
-
         captured_json.append(
             {
                 "url": response_url,
@@ -415,11 +527,36 @@ def capture_response(response):
             }
         )
 
-        if "/records/query" in response_url:
-            print("Enregistrements reçus.")
+        if "/fields" in response_url:
+
+            print(
+                "Définitions des champs reçues."
+            )
+
+            inspect_field_definitions(
+                data
+            )
+
+        elif "/records/query" in response_url:
+
+            print(
+                "Enregistrements reçus."
+            )
 
     except Exception as error:
-        print(f"Erreur capture : {error}")
+
+        print(
+            f"Erreur capture : {error}"
+        )
+
+
+def count_records_query_responses():
+
+    return sum(
+        1
+        for captured in captured_json
+        if "/records/query" in captured["url"]
+    )
 
 
 # ============================================================
@@ -428,31 +565,48 @@ def capture_response(response):
 
 def get_pagination_status(page):
     """
-    Recherche un texte comme :
-        1 of 2
-        2 of 2
+    Recherche un texte visible comme :
 
-    Retourne :
-        current_page, total_pages
+        Page 1 of 2
+        Page 2 of 2
 
-    Si aucune pagination n'est visible :
-        1, 1
+    Si le panneau est fermé :
+        None, None
     """
 
     result = page.evaluate(
         """
         () => {
+            function isVisible(element) {
+                const rect =
+                    element.getBoundingClientRect();
+
+                const style =
+                    window.getComputedStyle(element);
+
+                return (
+                    rect.width > 0 &&
+                    rect.height > 0 &&
+                    style.display !== "none" &&
+                    style.visibility !== "hidden"
+                );
+            }
+
             const elements = Array.from(
-                document.querySelectorAll("body *")
+                document.querySelectorAll("*")
             );
 
             for (const element of elements) {
+                if (!isVisible(element)) {
+                    continue;
+                }
+
                 const text = (
                     element.innerText || ""
                 ).trim();
 
                 const match = text.match(
-                    /^(\\d+)\\s+of\\s+(\\d+)$/
+                    /^Page\\s+(\\d+)\\s+of\\s+(\\d+)$/i
                 );
 
                 if (match) {
@@ -464,271 +618,90 @@ def get_pagination_status(page):
             }
 
             return {
-                current: 1,
-                total: 1
+                current: null,
+                total: null
             };
         }
         """
     )
 
-    current_page = int(result.get("current", 1))
-    total_pages = int(result.get("total", 1))
-
-    return current_page, total_pages
-
-
-def click_pagination_button(page, direction):
-    """
-    direction :
-        first
-        previous
-        next
-        last
-    """
-
-    clicked = page.evaluate(
-        """
-        (direction) => {
-            function isClickable(element) {
-                if (!element) {
-                    return false;
-                }
-
-                const tag = element.tagName.toLowerCase();
-
-                return (
-                    tag === "button"
-                    || tag === "a"
-                    || element.getAttribute("role") === "button"
-                );
-            }
-
-            function isDisabled(element) {
-                if (!element) {
-                    return true;
-                }
-
-                return (
-                    element.disabled === true
-                    || element.getAttribute("disabled") !== null
-                    || element.getAttribute("aria-disabled") === "true"
-                );
-            }
-
-            function getLabel(element) {
-                return [
-                    element.getAttribute("aria-label"),
-                    element.getAttribute("title"),
-                    element.innerText,
-                    element.textContent
-                ]
-                    .filter(Boolean)
-                    .join(" ")
-                    .trim()
-                    .toLowerCase();
-            }
-
-            const labelPatterns = {
-                first: [
-                    "first page",
-                    "go to first",
-                    "première page",
-                    "premiere page"
-                ],
-                previous: [
-                    "previous page",
-                    "go to previous",
-                    "page précédente",
-                    "page precedente"
-                ],
-                next: [
-                    "next page",
-                    "go to next",
-                    "page suivante"
-                ],
-                last: [
-                    "last page",
-                    "go to last",
-                    "dernière page",
-                    "derniere page"
-                ]
-            };
-
-            const clickableElements = Array.from(
-                document.querySelectorAll(
-                    'button, a, [role="button"]'
-                )
-            );
-
-            for (const element of clickableElements) {
-                const label = getLabel(element);
-
-                const matches = labelPatterns[
-                    direction
-                ].some(
-                    pattern => label.includes(pattern)
-                );
-
-                if (
-                    matches
-                    && !isDisabled(element)
-                ) {
-                    element.click();
-                    return true;
-                }
-            }
-
-            /*
-            Fallback pour l'interface Zapier visible dans
-            la capture d'écran :
-
-            [première] [précédente]  1 of 2  [suivante] [dernière]
-            */
-
-            const allElements = Array.from(
-                document.querySelectorAll("body *")
-            );
-
-            let statusElement = null;
-
-            for (const element of allElements) {
-                const text = (
-                    element.innerText || ""
-                ).trim();
-
-                if (/^\\d+\\s+of\\s+\\d+$/.test(text)) {
-                    statusElement = element;
-                    break;
-                }
-            }
-
-            if (!statusElement) {
-                return false;
-            }
-
-            let container = statusElement.parentElement;
-
-            for (let level = 0; level < 6; level++) {
-                if (!container) {
-                    break;
-                }
-
-                const buttons = Array.from(
-                    container.querySelectorAll(
-                        'button, a, [role="button"]'
-                    )
-                ).filter(isClickable);
-
-                if (buttons.length >= 4) {
-                    let target = null;
-
-                    if (direction === "first") {
-                        target = buttons[0];
-                    } else if (direction === "previous") {
-                        target = buttons[1];
-                    } else if (direction === "next") {
-                        target = buttons[
-                            buttons.length - 2
-                        ];
-                    } else if (direction === "last") {
-                        target = buttons[
-                            buttons.length - 1
-                        ];
-                    }
-
-                    if (
-                        target
-                        && !isDisabled(target)
-                    ) {
-                        target.click();
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                container = container.parentElement;
-            }
-
-            return false;
-        }
-        """,
-        direction,
+    current_page = result.get(
+        "current"
     )
 
-    return bool(clicked)
+    total_pages = result.get(
+        "total"
+    )
+
+    if (
+        current_page is None
+        or total_pages is None
+    ):
+        return None, None
+
+    return (
+        int(current_page),
+        int(total_pages),
+    )
 
 
-def wait_for_page_number(
-    page,
-    expected_page,
-    timeout_ms=30_000,
-):
-    page.wait_for_function(
-        """
-        expectedPage => {
-            const elements = Array.from(
-                document.querySelectorAll("body *")
-            );
+def pagination_panel_is_open(page):
 
-            return elements.some(element => {
-                const text = (
-                    element.innerText || ""
-                ).trim();
+    current_page, total_pages = (
+        get_pagination_status(
+            page
+        )
+    )
 
-                const match = text.match(
-                    /^(\\d+)\\s+of\\s+(\\d+)$/
-                );
-
-                return (
-                    match
-                    && Number(match[1]) === expectedPage
-                );
-            });
-        }
-        """,
-        arg=expected_page,
-        timeout=timeout_ms,
+    return (
+        current_page is not None
+        and total_pages is not None
     )
 
 
 def scroll_current_page(page):
     """
-    Force le chargement des lignes de la page actuelle.
+    Descend tous les conteneurs défilables afin que Zapier
+    charge les lignes de la page actuelle.
     """
+
+    print(
+        "Chargement complet des lignes..."
+    )
 
     previous_state = None
     stable_iterations = 0
 
-    for _ in range(40):
+    for _ in range(50):
+
         state = page.evaluate(
             """
             () => {
-                let changed = false;
-                let largestScrollHeight = 0;
-                let largestScrollTop = 0;
+                let maximumScrollHeight = 0;
+                let maximumScrollTop = 0;
 
-                const elements = document.querySelectorAll("*");
+                const elements =
+                    document.querySelectorAll("*");
 
                 for (const element of elements) {
                     if (
                         element.scrollHeight >
                         element.clientHeight + 5
                     ) {
-                        largestScrollHeight = Math.max(
-                            largestScrollHeight,
-                            element.scrollHeight
-                        );
-
                         element.scrollTop =
                             element.scrollHeight;
 
-                        largestScrollTop = Math.max(
-                            largestScrollTop,
-                            element.scrollTop
-                        );
+                        maximumScrollHeight =
+                            Math.max(
+                                maximumScrollHeight,
+                                element.scrollHeight
+                            );
 
-                        changed = true;
+                        maximumScrollTop =
+                            Math.max(
+                                maximumScrollTop,
+                                element.scrollTop
+                            );
                     }
                 }
 
@@ -738,9 +711,8 @@ def scroll_current_page(page):
                 );
 
                 return {
-                    changed,
-                    largestScrollHeight,
-                    largestScrollTop,
+                    maximumScrollHeight,
+                    maximumScrollTop,
                     bodyHeight:
                         document.body.scrollHeight
                 };
@@ -749,9 +721,15 @@ def scroll_current_page(page):
         )
 
         state_key = (
-            state.get("largestScrollHeight"),
-            state.get("largestScrollTop"),
-            state.get("bodyHeight"),
+            state.get(
+                "maximumScrollHeight"
+            ),
+            state.get(
+                "maximumScrollTop"
+            ),
+            state.get(
+                "bodyHeight"
+            ),
         )
 
         if state_key == previous_state:
@@ -761,260 +739,826 @@ def scroll_current_page(page):
 
         previous_state = state_key
 
-        page.wait_for_timeout(300)
+        page.wait_for_timeout(
+            300
+        )
 
-        if stable_iterations >= 4:
+        if stable_iterations >= 5:
             break
 
-    page.wait_for_timeout(WAIT_AFTER_PAGE_CHANGE_MS)
+    page.wait_for_timeout(
+        2_000
+    )
 
 
-def go_to_first_page(page):
-    current_page, total_pages = get_pagination_status(page)
+def open_pagination_panel(page):
+    """
+    Clique sur le bouton jaune situé immédiatement
+    à gauche du compteur de records.
+
+    Exemple :
+        [bouton jaune ^] [1,017 records]
+    """
+
+    if pagination_panel_is_open(
+        page
+    ):
+
+        print(
+            "Le panneau de pagination est déjà ouvert."
+        )
+
+        return True
 
     print(
-        f"Page affichée au départ : "
-        f"{current_page} sur {total_pages}"
+        "Clic sur le bouton jaune..."
     )
 
-    if current_page == 1:
-        return total_pages
+    result = page.evaluate(
+        """
+        () => {
+            function isVisible(element) {
+                const rect =
+                    element.getBoundingClientRect();
 
-    print("Retour à la première page...")
+                const style =
+                    window.getComputedStyle(element);
 
-    clicked = click_pagination_button(
-        page,
-        "first",
+                return (
+                    rect.width > 0 &&
+                    rect.height > 0 &&
+                    style.display !== "none" &&
+                    style.visibility !== "hidden" &&
+                    style.opacity !== "0"
+                );
+            }
+
+            function isDisabled(element) {
+                return (
+                    element.disabled === true ||
+                    element.hasAttribute("disabled") ||
+                    element.getAttribute(
+                        "aria-disabled"
+                    ) === "true"
+                );
+            }
+
+            /*
+            Trouver le plus petit élément visible contenant
+            seulement le compteur de records.
+            */
+
+            const recordCandidates =
+                Array.from(
+                    document.querySelectorAll("*")
+                )
+                .filter(element => {
+                    if (!isVisible(element)) {
+                        return false;
+                    }
+
+                    const text = (
+                        element.innerText || ""
+                    ).trim();
+
+                    return (
+                        /^\\d[\\d,\\.\\s]*\\s+records?$/i.test(
+                            text
+                        )
+                    );
+                })
+                .sort((a, b) => {
+                    const rectA =
+                        a.getBoundingClientRect();
+
+                    const rectB =
+                        b.getBoundingClientRect();
+
+                    return (
+                        rectA.width * rectA.height
+                        -
+                        rectB.width * rectB.height
+                    );
+                });
+
+            if (recordCandidates.length === 0) {
+                return {
+                    clicked: false,
+                    reason:
+                        "record_counter_not_found"
+                };
+            }
+
+            const recordElement =
+                recordCandidates[0];
+
+            const recordRect =
+                recordElement.getBoundingClientRect();
+
+            /*
+            Chercher un bouton visible immédiatement
+            à gauche du compteur.
+            */
+
+            const controls = Array.from(
+                document.querySelectorAll(
+                    [
+                        "button",
+                        "a",
+                        '[role="button"]',
+                        "[tabindex]"
+                    ].join(",")
+                )
+            )
+                .filter(element => {
+                    if (
+                        !isVisible(element) ||
+                        isDisabled(element)
+                    ) {
+                        return false;
+                    }
+
+                    const rect =
+                        element.getBoundingClientRect();
+
+                    const recordCenterY =
+                        recordRect.top +
+                        recordRect.height / 2;
+
+                    const controlCenterY =
+                        rect.top +
+                        rect.height / 2;
+
+                    const verticallyAligned =
+                        Math.abs(
+                            controlCenterY -
+                            recordCenterY
+                        ) < 30;
+
+                    const onLeft =
+                        rect.right <=
+                        recordRect.left + 10;
+
+                    const closeToCounter =
+                        recordRect.left -
+                        rect.right < 80;
+
+                    const smallControl =
+                        rect.width <= 80 &&
+                        rect.height <= 80;
+
+                    return (
+                        verticallyAligned &&
+                        onLeft &&
+                        closeToCounter &&
+                        smallControl
+                    );
+                })
+                .sort((a, b) => {
+                    const rectA =
+                        a.getBoundingClientRect();
+
+                    const rectB =
+                        b.getBoundingClientRect();
+
+                    const distanceA =
+                        recordRect.left -
+                        rectA.right;
+
+                    const distanceB =
+                        recordRect.left -
+                        rectB.right;
+
+                    return (
+                        distanceA - distanceB
+                    );
+                });
+
+            if (controls.length === 0) {
+                return {
+                    clicked: false,
+                    reason:
+                        "yellow_button_not_found"
+                };
+            }
+
+            controls[0].click();
+
+            return {
+                clicked: true,
+                reason:
+                    "closest_control_left_of_counter"
+            };
+        }
+        """
     )
 
-    if clicked:
-        wait_for_page_number(
-            page,
-            1,
+    if not result.get("clicked"):
+
+        print(
+            "Bouton jaune non détecté par structure."
         )
 
-        page.wait_for_timeout(
-            WAIT_AFTER_PAGE_CHANGE_MS
+        print(
+            "Deuxième tentative par position..."
         )
 
-        return total_pages
+        fallback_clicked = page.evaluate(
+            """
+            () => {
+                function isVisible(element) {
+                    const rect =
+                        element.getBoundingClientRect();
 
-    # Si le bouton Première page n'est pas détecté,
-    # on clique plusieurs fois sur Précédente.
+                    return (
+                        rect.width > 0 &&
+                        rect.height > 0
+                    );
+                }
 
-    while current_page > 1:
-        clicked = click_pagination_button(
-            page,
-            "previous",
+                const recordElement =
+                    Array.from(
+                        document.querySelectorAll("*")
+                    )
+                    .filter(element => {
+                        const text = (
+                            element.innerText || ""
+                        ).trim();
+
+                        return (
+                            isVisible(element) &&
+                            /^\\d[\\d,\\.\\s]*\\s+records?$/i.test(
+                                text
+                            )
+                        );
+                    })
+                    .sort((a, b) => {
+                        const rectA =
+                            a.getBoundingClientRect();
+
+                        const rectB =
+                            b.getBoundingClientRect();
+
+                        return (
+                            rectA.width * rectA.height
+                            -
+                            rectB.width * rectB.height
+                        );
+                    })[0];
+
+                if (!recordElement) {
+                    return false;
+                }
+
+                const recordRect =
+                    recordElement.getBoundingClientRect();
+
+                /*
+                Le bouton jaune est directement à gauche
+                du compteur de records.
+                */
+
+                const x = Math.max(
+                    5,
+                    recordRect.left - 12
+                );
+
+                const y =
+                    recordRect.top +
+                    recordRect.height / 2;
+
+                let target =
+                    document.elementFromPoint(
+                        x,
+                        y
+                    );
+
+                if (!target) {
+                    return false;
+                }
+
+                target =
+                    target.closest(
+                        [
+                            "button",
+                            "a",
+                            '[role="button"]',
+                            "[tabindex]"
+                        ].join(",")
+                    )
+                    || target;
+
+                target.click();
+
+                return true;
+            }
+            """
         )
 
-        if not clicked:
+        if not fallback_clicked:
+
             raise RuntimeError(
-                "Impossible de revenir à la "
-                "première page Zapier."
+                "Impossible de cliquer sur le bouton "
+                "jaune situé à gauche du compteur "
+                "de records."
             )
 
-        expected_page = current_page - 1
+    try:
 
-        wait_for_page_number(
-            page,
-            expected_page,
+        page.wait_for_function(
+            """
+            () => {
+                const elements = Array.from(
+                    document.querySelectorAll("*")
+                );
+
+                return elements.some(element => {
+                    const text = (
+                        element.innerText || ""
+                    ).trim();
+
+                    const rect =
+                        element.getBoundingClientRect();
+
+                    return (
+                        rect.width > 0 &&
+                        rect.height > 0 &&
+                        /^Page\\s+\\d+\\s+of\\s+\\d+$/i.test(
+                            text
+                        )
+                    );
+                });
+            }
+            """,
+            timeout=15_000,
         )
 
-        page.wait_for_timeout(
-            WAIT_AFTER_PAGE_CHANGE_MS
-        )
+    except Exception as error:
 
-        current_page, total_pages = (
-            get_pagination_status(page)
-        )
-
-    return total_pages
-
-
-def capture_all_pages(page):
-    global capture_enabled
-
-    # Désactive temporairement la capture pendant
-    # le retour vers la première page.
-    capture_enabled = False
-
-    total_pages = go_to_first_page(page)
-
-    if total_pages > MAX_PAGES_SAFETY:
         raise RuntimeError(
-            f"Nombre de pages anormal : {total_pages}"
+            "Le bouton jaune a été cliqué, "
+            "mais le panneau 'Page X of Y' "
+            "ne s'est pas affiché."
+        ) from error
+
+    current_page, total_pages = (
+        get_pagination_status(
+            page
         )
+    )
 
-    # Efface les réponses capturées pendant
-    # le chargement initial.
-    captured_json.clear()
-    extracted_records.clear()
-
-    capture_enabled = True
-
-    print("")
     print(
-        f"Nombre total de pages détecté : "
+        f"Panneau ouvert : "
+        f"Page {current_page} of "
         f"{total_pages}"
     )
 
-    for expected_page in range(
-        1,
-        total_pages + 1,
+    return True
+
+
+def click_next_page_button(page):
+    """
+    Clique sur le bouton orange immédiatement à droite de :
+
+        Page X of Y
+
+    Le bouton suivant à sa droite est le bouton
+    permettant d'aller directement à la dernière page.
+    """
+
+    if not pagination_panel_is_open(
+        page
     ):
-        current_page, detected_total = (
-            get_pagination_status(page)
+
+        open_pagination_panel(
+            page
+        )
+
+    result = page.evaluate(
+        """
+        () => {
+            function isVisible(element) {
+                const rect =
+                    element.getBoundingClientRect();
+
+                const style =
+                    window.getComputedStyle(element);
+
+                return (
+                    rect.width > 0 &&
+                    rect.height > 0 &&
+                    style.display !== "none" &&
+                    style.visibility !== "hidden"
+                );
+            }
+
+            function isDisabled(element) {
+                return (
+                    element.disabled === true ||
+                    element.hasAttribute("disabled") ||
+                    element.getAttribute(
+                        "aria-disabled"
+                    ) === "true"
+                );
+            }
+
+            const statusCandidates =
+                Array.from(
+                    document.querySelectorAll("*")
+                )
+                .filter(element => {
+                    if (!isVisible(element)) {
+                        return false;
+                    }
+
+                    const text = (
+                        element.innerText || ""
+                    ).trim();
+
+                    return (
+                        /^Page\\s+\\d+\\s+of\\s+\\d+$/i.test(
+                            text
+                        )
+                    );
+                })
+                .sort((a, b) => {
+                    const rectA =
+                        a.getBoundingClientRect();
+
+                    const rectB =
+                        b.getBoundingClientRect();
+
+                    return (
+                        rectA.width * rectA.height
+                        -
+                        rectB.width * rectB.height
+                    );
+                });
+
+            if (statusCandidates.length === 0) {
+                return {
+                    clicked: false,
+                    reason:
+                        "page_status_not_found"
+                };
+            }
+
+            const statusElement =
+                statusCandidates[0];
+
+            const statusRect =
+                statusElement.getBoundingClientRect();
+
+            const controls = Array.from(
+                document.querySelectorAll(
+                    [
+                        "button",
+                        "a",
+                        '[role="button"]',
+                        "[tabindex]"
+                    ].join(",")
+                )
+            )
+                .filter(element => {
+                    if (
+                        !isVisible(element) ||
+                        isDisabled(element)
+                    ) {
+                        return false;
+                    }
+
+                    const rect =
+                        element.getBoundingClientRect();
+
+                    const statusCenterY =
+                        statusRect.top +
+                        statusRect.height / 2;
+
+                    const controlCenterY =
+                        rect.top +
+                        rect.height / 2;
+
+                    const verticallyAligned =
+                        Math.abs(
+                            controlCenterY -
+                            statusCenterY
+                        ) < 30;
+
+                    const onRight =
+                        rect.left >=
+                        statusRect.right - 8;
+
+                    const closeToStatus =
+                        rect.left -
+                        statusRect.right < 120;
+
+                    const smallControl =
+                        rect.width <= 80 &&
+                        rect.height <= 80;
+
+                    return (
+                        verticallyAligned &&
+                        onRight &&
+                        closeToStatus &&
+                        smallControl
+                    );
+                })
+                .sort((a, b) => {
+                    return (
+                        a.getBoundingClientRect().left
+                        -
+                        b.getBoundingClientRect().left
+                    );
+                });
+
+            if (controls.length === 0) {
+                return {
+                    clicked: false,
+                    reason:
+                        "orange_next_button_not_found"
+                };
+            }
+
+            /*
+            Le premier contrôle immédiatement à droite
+            de Page X of Y est le bouton orange ">".
+            */
+
+            controls[0].click();
+
+            return {
+                clicked: true,
+                reason:
+                    "first_control_right_of_status"
+            };
+        }
+        """
+    )
+
+    return bool(
+        result.get("clicked")
+    )
+
+
+def wait_for_page_number(
+    page,
+    expected_page,
+):
+
+    page.wait_for_function(
+        """
+        expectedPage => {
+            const elements = Array.from(
+                document.querySelectorAll("*")
+            );
+
+            return elements.some(element => {
+                const text = (
+                    element.innerText || ""
+                ).trim();
+
+                const match = text.match(
+                    /^Page\\s+(\\d+)\\s+of\\s+(\\d+)$/i
+                );
+
+                if (!match) {
+                    return false;
+                }
+
+                const rect =
+                    element.getBoundingClientRect();
+
+                return (
+                    rect.width > 0 &&
+                    rect.height > 0 &&
+                    Number(match[1]) ===
+                    expectedPage
+                );
+            });
+        }
+        """,
+        arg=expected_page,
+        timeout=30_000,
+    )
+
+
+def wait_for_new_records_response(
+    page,
+    previous_response_count,
+):
+
+    for _ in range(60):
+
+        page.wait_for_timeout(
+            500
+        )
+
+        current_response_count = (
+            count_records_query_responses()
+        )
+
+        if (
+            current_response_count
+            > previous_response_count
+        ):
+            return True
+
+    return False
+
+
+def load_all_pages(page):
+    """
+    Séquence :
+
+    1. Charger les lignes de la première page.
+    2. Cliquer sur le bouton jaune.
+    3. Lire Page X of Y.
+    4. Cliquer sur le bouton orange.
+    5. Attendre la page suivante.
+    6. Charger les lignes de la nouvelle page.
+    7. Répéter jusqu'à la dernière page.
+    """
+
+    print("")
+    print("=" * 60)
+    print("PAGINATION ZAPIER")
+    print("=" * 60)
+    print("")
+
+    # --------------------------------------------------------
+    # Première page
+    # --------------------------------------------------------
+
+    print(
+        "Chargement de la première page..."
+    )
+
+    scroll_current_page(
+        page
+    )
+
+    # --------------------------------------------------------
+    # Ouvrir le panneau avec le bouton jaune
+    # --------------------------------------------------------
+
+    open_pagination_panel(
+        page
+    )
+
+    current_page, total_pages = (
+        get_pagination_status(
+            page
+        )
+    )
+
+    if (
+        current_page is None
+        or total_pages is None
+    ):
+
+        raise RuntimeError(
+            "Impossible de lire la pagination "
+            "après l'ouverture du panneau."
+        )
+
+    if total_pages > MAX_PAGES:
+
+        raise RuntimeError(
+            f"Nombre de pages anormalement élevé : "
+            f"{total_pages}"
+        )
+
+    print(
+        f"Pagination détectée : "
+        f"Page {current_page} of "
+        f"{total_pages}"
+    )
+
+    # --------------------------------------------------------
+    # Pages suivantes
+    # --------------------------------------------------------
+
+    while current_page < total_pages:
+
+        next_page = (
+            current_page + 1
         )
 
         print("")
         print(
-            f"Capture de la page "
-            f"{current_page} sur {detected_total}..."
+            f"Passage de la page "
+            f"{current_page} "
+            f"à la page {next_page}..."
         )
 
-        # Pour la première page, les données peuvent déjà
-        # être chargées. On recharge donc la page 1 pour
-        # provoquer une nouvelle réponse /records/query.
-        if expected_page == 1:
-            before_count = len(captured_json)
+        previous_response_count = (
+            count_records_query_responses()
+        )
 
-            page.reload(
-                wait_until="domcontentloaded",
-                timeout=PAGE_TIMEOUT_MS,
+        # Le panneau pourrait s'être fermé
+        if not pagination_panel_is_open(
+            page
+        ):
+
+            open_pagination_panel(
+                page
             )
 
-            page.wait_for_timeout(
-                WAIT_AFTER_LOAD_MS
+        # Cliquer sur le bouton orange
+        clicked = click_next_page_button(
+            page
+        )
+
+        if not clicked:
+
+            raise RuntimeError(
+                "Impossible de cliquer sur le "
+                "bouton orange Page suivante."
             )
 
-            current_page, total_after_reload = (
-                get_pagination_status(page)
+        # Attendre Page suivante of Total
+        wait_for_page_number(
+            page,
+            next_page,
+        )
+
+        print(
+            f"Zapier affiche maintenant : "
+            f"Page {next_page} of "
+            f"{total_pages}"
+        )
+
+        # Attendre la réponse réseau
+        received = (
+            wait_for_new_records_response(
+                page,
+                previous_response_count,
             )
+        )
 
-            # Zapier pourrait restaurer l'ancienne page.
-            if current_page != 1:
-                capture_enabled = False
-
-                go_to_first_page(page)
-
-                captured_json.clear()
-                capture_enabled = True
-
-                # Clique sur suivante puis précédente afin
-                # de forcer une requête fraîche de page 1,
-                # seulement si plusieurs pages existent.
-                if total_after_reload > 1:
-                    clicked = click_pagination_button(
-                        page,
-                        "next",
-                    )
-
-                    if clicked:
-                        wait_for_page_number(
-                            page,
-                            2,
-                        )
-
-                        page.wait_for_timeout(
-                            WAIT_AFTER_PAGE_CHANGE_MS
-                        )
-
-                        capture_enabled = False
-
-                        click_pagination_button(
-                            page,
-                            "previous",
-                        )
-
-                        wait_for_page_number(
-                            page,
-                            1,
-                        )
-
-                        captured_json.clear()
-                        capture_enabled = True
-
-                        page.reload(
-                            wait_until="domcontentloaded",
-                            timeout=PAGE_TIMEOUT_MS,
-                        )
-
-                        page.wait_for_timeout(
-                            WAIT_AFTER_LOAD_MS
-                        )
-
-                        current_page, _ = (
-                            get_pagination_status(page)
-                        )
-
-                        if current_page != 1:
-                            capture_enabled = False
-                            go_to_first_page(page)
-                            captured_json.clear()
-                            capture_enabled = True
-
-            scroll_current_page(page)
-
-            after_count = len(captured_json)
+        if received:
 
             print(
-                "Réponses capturées sur la page 1 : "
-                f"{after_count - before_count}"
+                "Nouvelle réponse "
+                "/records/query reçue."
             )
 
         else:
-            previous_response_count = len(captured_json)
-
-            clicked = click_pagination_button(
-                page,
-                "next",
-            )
-
-            if not clicked:
-                raise RuntimeError(
-                    "Le bouton Page suivante n'a "
-                    f"pas été détecté pour accéder "
-                    f"à la page {expected_page}."
-                )
-
-            wait_for_page_number(
-                page,
-                expected_page,
-            )
-
-            # Attend qu'une nouvelle réponse réseau arrive.
-            try:
-                page.wait_for_function(
-                    """
-                    () => true
-                    """,
-                    timeout=500,
-                )
-            except Exception:
-                pass
-
-            page.wait_for_timeout(
-                WAIT_AFTER_PAGE_CHANGE_MS
-            )
-
-            scroll_current_page(page)
-
-            new_response_count = (
-                len(captured_json)
-                - previous_response_count
-            )
 
             print(
-                "Nouvelles réponses capturées : "
-                f"{new_response_count}"
+                "AVERTISSEMENT : aucune nouvelle "
+                "réponse /records/query détectée."
             )
 
-    capture_enabled = False
+        page.wait_for_timeout(
+            WAIT_AFTER_PAGE_CHANGE_MS
+        )
+
+        # Charger toutes les lignes de la nouvelle page
+        scroll_current_page(
+            page
+        )
+
+        # Le panneau peut se fermer après le scroll
+        if not pagination_panel_is_open(
+            page
+        ):
+
+            open_pagination_panel(
+                page
+            )
+
+        current_page, detected_total = (
+            get_pagination_status(
+                page
+            )
+        )
+
+        if (
+            current_page is None
+            or detected_total is None
+        ):
+
+            raise RuntimeError(
+                "Impossible de confirmer le "
+                "numéro de la nouvelle page."
+            )
+
+        total_pages = max(
+            total_pages,
+            detected_total,
+        )
+
+        print(
+            f"Page confirmée : "
+            f"{current_page} of "
+            f"{total_pages}"
+        )
 
     print("")
     print(
-        "Toutes les pages Zapier ont été visitées."
+        "Toutes les pages Zapier "
+        "ont été parcourues."
     )
 
 
@@ -1023,9 +1567,13 @@ def capture_all_pages(page):
 # ============================================================
 
 def deduplicate_records(candidates):
+
     best_by_key = {}
 
-    for index, candidate in enumerate(candidates):
+    for index, candidate in enumerate(
+        candidates
+    ):
+
         row = candidate["row"]
         score = candidate["score"]
 
@@ -1035,21 +1583,20 @@ def deduplicate_records(candidates):
         ).strip()
 
         # ----------------------------------------------------
-        # CAS 1 : Booking ID commence par Ex
+        # CAS 1 : Booking ID commence par "Ex"
         #
-        # On garde toutes les occurrences ayant des données
-        # différentes. Une même réponse réseau capturée deux
-        # fois ne créera pas de doublon CSV.
+        # ANCIENNE LOGIQUE CONSERVÉE :
+        # toutes les lignes Ex sont conservées grâce à index.
         # ----------------------------------------------------
 
-        if booking_id.lower().startswith("ex"):
+        if booking_id.lower().startswith(
+            "ex"
+        ):
+
             unique_key = (
                 "booking_id_ex",
                 booking_id,
-                tuple(
-                    row.get(column, "")
-                    for column in EXPECTED_COLUMNS
-                ),
+                index,
             )
 
         # ----------------------------------------------------
@@ -1059,6 +1606,7 @@ def deduplicate_records(candidates):
         # ----------------------------------------------------
 
         elif booking_id:
+
             unique_key = (
                 "booking_id",
                 booking_id,
@@ -1069,25 +1617,35 @@ def deduplicate_records(candidates):
         # ----------------------------------------------------
 
         else:
-            unique_key = (
-                "no_booking_id",
-                tuple(
-                    row.get(column, "")
-                    for column in EXPECTED_COLUMNS
-                ),
+
+            unique_key = tuple(
+                row.get(
+                    column,
+                    "",
+                )
+                for column in EXPECTED_COLUMNS
             )
 
-        existing = best_by_key.get(unique_key)
+        existing = best_by_key.get(
+            unique_key
+        )
 
         if existing is None:
-            best_by_key[unique_key] = candidate
+
+            best_by_key[
+                unique_key
+            ] = candidate
 
         elif score > existing["score"]:
-            best_by_key[unique_key] = candidate
+
+            best_by_key[
+                unique_key
+            ] = candidate
 
     return [
         candidate["row"]
-        for candidate in best_by_key.values()
+        for candidate
+        in best_by_key.values()
     ]
 
 
@@ -1096,11 +1654,13 @@ def deduplicate_records(candidates):
 # ============================================================
 
 def write_csv(records):
+
     with OUTPUT_FILE.open(
         mode="w",
         newline="",
         encoding="utf-8-sig",
     ) as csv_file:
+
         writer = csv.DictWriter(
             csv_file,
             fieldnames=EXPECTED_COLUMNS,
@@ -1110,29 +1670,80 @@ def write_csv(records):
         )
 
         writer.writeheader()
-        writer.writerows(records)
 
+        writer.writerows(
+            records
+        )
+
+
+# ============================================================
+# DEBUG
+# ============================================================
 
 def write_debug_file():
+
     debug_content = {
         "table_id": TABLE_ID,
-        "captured_response_count": len(captured_json),
-        "recognized_fields": sorted(
-            set(field_map.values())
+        "captured_response_count": len(
+            captured_json
         ),
-        "candidate_count": len(extracted_records),
+        "records_query_response_count": (
+            count_records_query_responses()
+        ),
+        "recognized_fields": sorted(
+            set(
+                field_map.values()
+            )
+        ),
+        "candidate_count": len(
+            extracted_records
+        ),
         "responses": captured_json,
     }
 
-    with DEBUG_FILE.open(
-        mode="w",
-        encoding="utf-8",
-    ) as debug_file:
-        json.dump(
-            debug_content,
-            debug_file,
-            ensure_ascii=False,
-            indent=2,
+    try:
+
+        with DEBUG_FILE.open(
+            mode="w",
+            encoding="utf-8",
+        ) as debug_file:
+
+            json.dump(
+                debug_content,
+                debug_file,
+                ensure_ascii=False,
+                indent=2,
+            )
+
+    except Exception as error:
+
+        print(
+            f"Erreur création debug : "
+            f"{error}"
+        )
+
+
+def save_error_screenshot(page):
+
+    try:
+
+        page.screenshot(
+            path=str(
+                SCREENSHOT_FILE
+            ),
+            full_page=True,
+        )
+
+        print(
+            f"Capture d'erreur : "
+            f"{SCREENSHOT_FILE}"
+        )
+
+    except Exception as error:
+
+        print(
+            f"Impossible de prendre la "
+            f"capture d'écran : {error}"
         )
 
 
@@ -1141,6 +1752,7 @@ def write_debug_file():
 # ============================================================
 
 def main():
+
     print("")
     print("=" * 60)
     print("EXPORT ZAPIER TABLE")
@@ -1148,10 +1760,11 @@ def main():
     print("")
 
     # --------------------------------------------------------
-    # Validation GitHub Secret
+    # Validation du GitHub Secret
     # --------------------------------------------------------
 
     if not ZAPIER_URL:
+
         print(
             "ERREUR : GitHub Secret "
             "'ZAPIER_TABLE_URL' absent."
@@ -1159,15 +1772,22 @@ def main():
 
         sys.exit(1)
 
-    print("GitHub Secret chargé.")
-    print(f"Table ID : {TABLE_ID}")
+    print(
+        "GitHub Secret chargé."
+    )
+
+    print(
+        f"Table ID : {TABLE_ID}"
+    )
 
     # --------------------------------------------------------
     # Chromium
     # --------------------------------------------------------
 
     try:
+
         with sync_playwright() as p:
+
             browser = p.chromium.launch(
                 headless=HEADLESS
             )
@@ -1187,7 +1807,9 @@ def main():
                 capture_response,
             )
 
-            print("Ouverture Zapier...")
+            print(
+                "Ouverture Zapier..."
+            )
 
             page.goto(
                 ZAPIER_URL,
@@ -1195,28 +1817,46 @@ def main():
                 timeout=PAGE_TIMEOUT_MS,
             )
 
-            print("Page chargée.")
+            print(
+                "Page chargée."
+            )
 
             page.wait_for_timeout(
                 WAIT_AFTER_LOAD_MS
             )
 
-            capture_all_pages(page)
+            # ------------------------------------------------
+            # Charger toutes les pages Zapier
+            # ------------------------------------------------
+
+            try:
+
+                load_all_pages(
+                    page
+                )
+
+            except Exception:
+
+                save_error_screenshot(
+                    page
+                )
+
+                raise
 
             browser.close()
 
     except Exception as error:
-        print("")
-        print(
-            "ERREUR pendant la navigation Zapier :"
-        )
-        print(str(error))
 
-        try:
-            write_debug_file()
-            print(f"Debug : {DEBUG_FILE}")
-        except Exception:
-            pass
+        print("")
+        print("=" * 60)
+        print("ERREUR PENDANT LA NAVIGATION")
+        print("=" * 60)
+
+        print(
+            str(error)
+        )
+
+        write_debug_file()
 
         sys.exit(1)
 
@@ -1225,14 +1865,21 @@ def main():
     # --------------------------------------------------------
 
     print("")
+
     print(
-        f"Réponses Zapier capturées : "
+        f"Réponses Zapier : "
         f"{len(captured_json)}"
+    )
+
+    print(
+        f"Réponses /records/query : "
+        f"{count_records_query_responses()}"
     )
 
     recognized_fields = {
         value
-        for value in field_map.values()
+        for value
+        in field_map.values()
     }
 
     print(
@@ -1243,17 +1890,19 @@ def main():
     for captured_index, captured in enumerate(
         captured_json
     ):
+
         if "/records/query" in captured["url"]:
+
             inspect_for_records(
                 captured["data"],
                 path=(
-                    "records_query"
+                    f"records_query"
                     f"[{captured_index}]"
                 ),
             )
 
     print(
-        f"Candidats détectés : "
+        f"Enregistrements candidats : "
         f"{len(extracted_records)}"
     )
 
@@ -1275,16 +1924,12 @@ def main():
     ]
 
     if not records:
+
         print(
             "ERREUR : aucune ligne trouvée."
         )
 
         write_debug_file()
-
-        print(
-            f"Fichier debug créé : "
-            f"{DEBUG_FILE}"
-        )
 
         sys.exit(1)
 
@@ -1309,7 +1954,14 @@ def main():
     # CSV
     # --------------------------------------------------------
 
-    write_csv(records)
+    write_csv(
+        records
+    )
+
+    # --------------------------------------------------------
+    # DEBUG
+    # --------------------------------------------------------
+
     write_debug_file()
 
     # --------------------------------------------------------
@@ -1321,15 +1973,25 @@ def main():
     print("EXPORT TERMINÉ")
     print("=" * 60)
 
-    print(f"Lignes : {len(records)}")
+    print(
+        f"Lignes : "
+        f"{len(records)}"
+    )
 
     print(
         f"Colonnes : "
         f"{len(EXPECTED_COLUMNS)}"
     )
 
-    print(f"CSV : {OUTPUT_FILE}")
-    print(f"Debug : {DEBUG_FILE}")
+    print(
+        f"CSV : "
+        f"{OUTPUT_FILE}"
+    )
+
+    print(
+        f"Debug : "
+        f"{DEBUG_FILE}"
+    )
 
     print(
         "Exécution : "
@@ -1344,4 +2006,5 @@ def main():
 # ============================================================
 
 if __name__ == "__main__":
+
     main()
