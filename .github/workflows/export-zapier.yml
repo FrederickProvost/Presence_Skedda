@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
 
   schedule:
-    - cron: "50 8 * * *"
+    - cron: "50 12 * * *"
       timezone: "America/Toronto"
 
-    - cron: "50 11 * * *"
+    - cron: "50 15 * * *"
       timezone: "America/Toronto"
 
-    - cron: "50 14 * * *"
+    - cron: "50 18 * * *"
       timezone: "America/Toronto"
 
 permissions:
