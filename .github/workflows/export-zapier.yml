@@ -1,15 +1,6 @@
 name: Export Presence Skedda
 
 on:
-  schedule:
-    - cron: "50 08 * * *"
-      timezone: "America/Toronto"
-
-    - cron: "50 12 * * *"
-      timezone: "America/Toronto"
-
-    - cron: "50 14 * * *"
-      timezone: "America/Toronto"
   workflow_dispatch:
 permissions:
   contents: write
