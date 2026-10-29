@@ -1,4 +1,11 @@
 ﻿Booking ID,Date,Space IDs,Space Names,Start Date,End Date,Creator ID,Creator First Name,Creator Last Name,Creator Email,Occurrence Count,Cancelled,Cancelled Date
+123783278,2026-10-29T18:19:15Z,917589,Mantra Corp,2026-10-30T14:00:00Z,2026-10-30T15:00:00Z,4447365,Audrey,Beauchemin,abeauchemin@mantrapharma.ca,1.0,,
+123782189,2026-10-29T17:59:06Z,917591,Le Bunker,2026-10-29T18:00:00Z,2026-10-29T19:00:00Z,2494551,Geneviève,Lacroix,glacroix@mantrapharma.ca,1.0,,
+123781050,2026-10-29T17:37:30Z,917590,Le Studio,2026-10-29T17:45:00Z,2026-10-29T18:30:00Z,4006844,Eléonore,Dumont,edumont@mantrapharma.ca,1.0,,
+123780746,2026-10-29T17:31:54Z,1492224,Lounge,2026-10-29T17:45:00Z,2026-10-29T19:00:00Z,2384500,Gilbert,Neault,gneault@myriadpharma.ca,1.0,,
+123780509,2026-10-29T17:28:12Z,1492219,Bureau Fermé 11,2026-10-29T17:30:00Z,2026-10-29T18:00:00Z,4766883,Sarah,Benregaya,sbenregaya@mantrapharma.ca,1.0,,
+123780164,2026-10-29T17:22:18Z,917593,La Créative,2026-10-29T17:30:00Z,2026-10-29T18:00:00Z,5326300,Annie,Ladouceur,aladouceur@mantrapharma.ca,1.0,,
+123778028,2026-10-29T16:59:02Z,1147672,La sportive,2026-10-29T17:00:00Z,2026-10-29T18:00:00Z,3112558,Steffi,Lapierre,slapierre@mantrapharma.ca,1.0,,
 123775408,2026-10-29T16:19:37Z,1147672,La sportive,2026-10-29T16:30:00Z,2026-10-29T17:00:00Z,4006844,Eléonore,Dumont,edumont@mantrapharma.ca,1.0,,
 123774725,2026-10-29T16:10:43Z,917590,Le Studio,2026-10-29T16:15:00Z,2026-10-29T17:00:00Z,4006844,Eléonore,Dumont,edumont@mantrapharma.ca,1.0,,
 123773678,2026-10-29T15:59:01Z,917596,Bureau 32,2026-11-10T13:30:00Z,2026-11-10T21:30:00Z,2261547,Desislava,Angelova,dangelova@mantrapharma.ca,1.0,,
