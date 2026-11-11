@@ -1,4 +1,8 @@
 ﻿Booking ID,Date,Space IDs,Space Names,Start Date,End Date,Creator ID,Creator First Name,Creator Last Name,Creator Email,Occurrence Count,Cancelled,Cancelled Date
+124605959,2026-11-11T19:46:57Z,917593,La Créative,2026-11-11T19:45:00Z,2026-11-11T22:00:00Z,4006844,Eléonore,Dumont,edumont@mantrapharma.ca,1.0,,
+124604789,2026-11-11T19:25:59Z,917553,Myriad Express,2026-11-12T13:15:00Z,2026-11-12T22:15:00Z,4447365,Audrey,Beauchemin,abeauchemin@mantrapharma.ca,1.0,,
+124603152,2026-11-11T18:55:17Z,1492221,Bureau 40,2026-11-18T13:00:00Z,2026-11-18T22:00:00Z,4766883,Sarah,Benregaya,sbenregaya@mantrapharma.ca,1.0,,
+124603138,2026-11-11T18:54:52Z,1492221,Bureau 40,2026-11-17T13:00:00Z,2026-11-17T22:00:00Z,4766883,Sarah,Benregaya,sbenregaya@mantrapharma.ca,1.0,,
 124601776,2026-11-11T18:25:40Z,917590,Le Studio,2026-11-11T18:30:00Z,2026-11-11T19:00:00Z,4098557,Chloé,Khazzaka,ckhazzaka@mantrapharma.ca,1.0,,
 124600221,2026-11-11T17:55:57Z,1492225,Le Lab,2026-11-11T18:00:00Z,2026-11-11T20:00:00Z,5043937,Simon ,Jetté,sjette@mantrapharma.ca,1.0,,
 124594687,2026-11-11T16:32:28Z,917558,Bureau Fermé 5,2026-11-11T19:00:00Z,2026-11-11T19:30:00Z,3838116,Amélie,Bergeron,ameliebergeron@mantrapharma.ca,1.0,,
