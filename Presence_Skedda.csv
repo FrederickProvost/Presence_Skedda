@@ -1,4 +1,8 @@
 ﻿Booking ID,Date,Space IDs,Space Names,Start Date,End Date,Creator ID,Creator First Name,Creator Last Name,Creator Email,Occurrence Count,Cancelled,Cancelled Date
+125343752,2026-11-24T20:10:00Z,917590,Le Studio,2026-11-26T18:30:00Z,2026-11-26T19:30:00Z,4744069,Sabrine ,Messaoudi,smessaoudi@mantrapharma.ca,1.0,,
+125343240,2026-11-24T19:59:26Z,917584,Bureau 26,2026-11-26T12:15:00Z,2026-11-26T21:30:00Z,2261254,Frédérick ,Provost,fprovost@mantrapharma.ca,1.0,,
+125343203,2026-11-24T19:58:53Z,917590,Le Studio,2026-11-26T15:30:00Z,2026-11-26T17:00:00Z,4744069,Sabrine ,Messaoudi,smessaoudi@mantrapharma.ca,1.0,,
+125342878,2026-11-24T19:52:26Z,917590,Le Studio,2026-11-25T19:00:00Z,2026-11-25T21:00:00Z,4744069,Sabrine ,Messaoudi,smessaoudi@mantrapharma.ca,1.0,,
 125342788,2026-11-24T19:50:09Z,917585,Bureau 27,2026-11-26T13:00:00Z,2026-11-26T22:00:00Z,4744069,Sabrine ,Messaoudi,smessaoudi@mantrapharma.ca,1.0,,
 125342768,2026-11-24T19:49:51Z,917585,Bureau 27,2026-11-25T13:00:00Z,2026-11-25T22:00:00Z,4744069,Sabrine ,Messaoudi,smessaoudi@mantrapharma.ca,1.0,,
 125340341,2026-11-24T18:56:09Z,917586,Bureau 28,2026-12-01T13:30:00Z,2026-12-01T22:00:00Z,3838116,Amélie,Bergeron,ameliebergeron@mantrapharma.ca,1.0,,
