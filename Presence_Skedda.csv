@@ -1,4 +1,8 @@
 ﻿Booking ID,Date,Space IDs,Space Names,Start Date,End Date,Creator ID,Creator First Name,Creator Last Name,Creator Email,Occurrence Count,Cancelled,Cancelled Date
+125426249,2026-11-25T19:34:38Z,1492225,Le Lab,2026-11-26T16:30:00Z,2026-11-26T17:00:00Z,2876417,Clara,Le Gall,clegall@mantrapharma.ca,1.0,,
+125426022,2026-11-25T19:30:41Z,917585,Bureau 27,2026-12-02T13:00:00Z,2026-12-02T22:00:00Z,4744069,Sabrine ,Messaoudi,smessaoudi@mantrapharma.ca,1.0,,
+125425858,2026-11-25T19:28:03Z,917585,Bureau 27,2026-12-01T13:00:00Z,2026-12-01T22:00:00Z,4744069,Sabrine ,Messaoudi,smessaoudi@mantrapharma.ca,1.0,,
+125423900,2026-11-25T18:52:19Z,917593,La Créative,2026-11-25T19:00:00Z,2026-11-25T19:30:00Z,2876417,Clara,Le Gall,clegall@mantrapharma.ca,1.0,,
 125397941,2026-11-25T17:33:43Z,917590,Le Studio,2026-11-25T18:00:00Z,2026-11-25T18:30:00Z,3838116,Amélie,Bergeron,ameliebergeron@mantrapharma.ca,1.0,,
 125396471,2026-11-25T17:00:58Z,1550731,Bureau 41,2026-12-02T13:00:00Z,2026-12-02T22:00:00Z,2261342,Ingrid,Gaillard,igaillard@mantrapharma.ca,1.0,,
 125394700,2026-11-25T16:27:55Z,917552,L'ABT Express,2026-11-27T19:45:00Z,2026-11-27T21:30:00Z,2982152,Nathalie,Chayer,nchayer@mantrapharma.ca,1.0,,
