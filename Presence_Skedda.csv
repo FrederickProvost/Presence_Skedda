@@ -1,4 +1,9 @@
 ﻿Booking ID,Date,Space IDs,Space Names,Start Date,End Date,Creator ID,Creator First Name,Creator Last Name,Creator Email,Occurrence Count,Cancelled,Cancelled Date
+125531270,2026-11-27T19:41:39Z,917562,Bureau 4,2026-12-02T17:00:00Z,2026-12-02T21:30:00Z,4206090,Ariane,Guénette-Archambault,aarchambault@mantrapharma.ca,1.0,,
+125531062,2026-11-27T19:29:55Z,917580,Bureau 22,2026-12-02T13:30:00Z,2026-12-02T21:30:00Z,4726818,Viviane,Tan,vtan@mantrapharma.ca,1.0,,
+125511155,2026-11-27T18:57:15Z,917556,Bureau Fermé 3,2026-11-27T19:00:00Z,2026-11-27T21:30:00Z,4447365,Audrey,Beauchemin,abeauchemin@mantrapharma.ca,1.0,,
+125509972,2026-11-27T18:01:43Z,917557,Bureau Fermé 4,2026-11-27T18:45:00Z,2026-11-27T19:30:00Z,2261468,Anthony,Labrecque,anthonylabrecque@mantrapharma.ca,1.0,,
+125509859,2026-11-27T17:55:48Z,917554,Bureau Fermé 1,2026-11-27T18:00:00Z,2026-11-27T20:00:00Z,2276268,Anne,Labrecque,alabrecque@mantrapharma.ca,1.0,,
 124737771,2026-11-27T16:59:23Z,917560,Bureau 2,2026-11-27T13:30:00Z,2026-11-27T17:00:00Z,2982152,Nathalie,Chayer,nchayer@mantrapharma.ca,1.0,,
 125394700,2026-11-27T16:59:11Z,917552,L'ABT Express,2026-11-27T17:00:00Z,2026-11-27T22:00:00Z,2982152,Nathalie,Chayer,nchayer@mantrapharma.ca,1.0,,
 125506161,2026-11-27T15:53:38Z,917587,Bureau 29,2026-12-10T14:00:00Z,2026-12-10T22:00:00Z,2263656,Valérie,André,vandre@mantrapharma.ca,1.0,,
@@ -137,7 +142,6 @@
 125333245,2026-11-24T16:45:20Z,917578,Bureau 20,2026-12-07T12:15:00Z,2026-12-07T20:45:00Z,3727507,France,Auger,fauger@mantrapharma.ca,1.0,,
 125333147,2026-11-24T16:43:59Z,917578,Bureau 20,2026-12-02T12:15:00Z,2026-12-02T21:00:00Z,3727507,France,Auger,fauger@mantrapharma.ca,1.0,,
 125332798,2026-11-24T16:38:41Z,917587,Bureau 29,2026-12-01T12:15:00Z,2026-12-01T21:00:00Z,3727507,France,Auger,fauger@mantrapharma.ca,1.0,,
-125332523,2026-11-24T16:35:24Z,1550733,Bureau 43,2026-12-01T13:30:00Z,2026-12-01T21:30:00Z,4726818,Viviane,Tan,vtan@mantrapharma.ca,1.0,,
 125332315,2026-11-24T16:32:36Z,917580,Bureau 22,2026-12-01T14:00:00Z,2026-12-01T22:00:00Z,2495861,Nayeli,Ramirez,nramirez@mantrapharma.ca,1.0,,
 125332256,2026-11-24T16:31:48Z,917580,Bureau 22,2026-11-30T14:00:00Z,2026-11-30T22:00:00Z,2495861,Nayeli,Ramirez,nramirez@mantrapharma.ca,1.0,,
 125331918,2026-11-24T16:30:24Z,917572,Bureau 14,2026-12-01T13:00:00Z,2026-12-01T21:00:00Z,2372233,Valeria,Melliz,vmelliz@mantrapharma.ca,1.0,,
